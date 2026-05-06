@@ -4,10 +4,11 @@ A real-time, gesture-driven 3D experience built with **Three.js**, **MediaPipe H
 
 | Gesture | Visual |
 | --- | --- |
-| ✊ Fist | A glowing 3D Earth point cloud rotates slowly |
-| 🖐 Open palm | The Earth shatters and the air fills with falling sakura petals |
+| ✊ Fist | A glowing 3D Earth point cloud rotates slowly with the letters **T & N** embossed on its surface |
+| 🖐 Open palm | "Life Release" — the Earth glows, vibrates, then morphs in place into falling sakura petals |
 | ✌ Peace | A radiant **"I love you ♥"** forms from a point cloud |
 | 🫶 Korean finger heart | A pulsing 3D heart of light with **Như** inside, **Happy birthday babe · Như · 27.5** below |
+| 👍 Thumbs up (Like) | Particles gather into a beam of light, then morph into a glowing pink heart that pulses |
 
 Every transition uses a unified particle dissolve/regenerate shader — objects break apart into dust and reform.
 
@@ -50,10 +51,11 @@ js/
     fontLoader.js          · cached Three.js font loader
   objects/
     baseObject.js          · lifecycle base class (enter / update / exit / dispose)
-    earth.js               · fist · stylised planet + Saturn-like ring (point cloud)
-    sakura.js              · open palm · GPU-driven cherry-blossom storm
+    lifeOrb.js             · fist + open palm · single particle system that morphs from
+                              Earth (with embossed "T & N") to sakura petals via uPhase
     loveText.js            · peace · "I love you ♥" sampled with MeshSurfaceSampler
     fingerHeart.js         · finger heart · 3D heart + HTML overlay for Vietnamese text
+    lightBeamHeart.js      · thumbs up · ambient → beam → heart cinematic, single particle system
 ```
 
 ---

@@ -31,6 +31,7 @@ export class AudioFX {
             case 'open_palm':    this._playShatter(); break;
             case 'peace':        this._playChime([523.25, 659.25, 783.99]); break;
             case 'finger_heart': this._playHeart(); break;
+            case 'thumbs_up':    this._playReveal(); break;
         }
     }
 
@@ -100,5 +101,21 @@ export class AudioFX {
         // sub thump
         this._tone(82.41, 'sine', 0.02, 0.4, 0.5, 0.05);
         this._tone(82.41, 'sine', 0.02, 0.4, 0.4, 0.45);
+    }
+
+    _playReveal() {
+        // Cinematic reveal — slow pad swell, rising shimmer, warm impact at the
+        // moment the heart appears. Timings track LightBeamHeart's phases.
+        // Pad swell during gathering (~0.5s..1.5s in scene time)
+        [196.00, 293.66, 392.00].forEach((f, i) => {
+            this._tone(f, 'sine', 0.5, 2.2, 0.28, i * 0.08);
+        });
+        // Rising high shimmer as the heart reveals (~1.7s)
+        [1318.51, 1567.98, 2093.00].forEach((f, i) => {
+            this._tone(f, 'triangle', 0.06, 1.4, 0.12, 1.2 + i * 0.18);
+        });
+        // Warm bass impact at the pulse moment (~2.7s)
+        this._tone(110.00, 'sine', 0.04, 0.7, 0.42, 2.5);
+        this._tone(220.00, 'sine', 0.04, 0.7, 0.22, 2.5);
     }
 }

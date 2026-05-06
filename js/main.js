@@ -22,6 +22,7 @@ const GESTURE_LABELS = {
     open_palm:   { name: 'Open Palm',    hint: 'Sakura wind · let it bloom' },
     peace:       { name: 'Peace',        hint: 'Words for you' },
     finger_heart:{ name: 'Finger Heart', hint: 'Made with love · Như 27.5' },
+    thumbs_up:   { name: 'Like',         hint: 'A beam of light · a yes from the heart' },
     none:        { name: '—',            hint: 'Show your hand to the camera' },
 };
 

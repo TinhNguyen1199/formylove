@@ -55,12 +55,14 @@ function classify(lm) {
     if (!lm) return { gesture: 'none', confidence: 0, scores: {} };
 
     const raw = {
+        thumb:  fingerExtension(lm, FINGER.thumb),    // IP-joint angle works for thumb too
         index:  fingerExtension(lm, FINGER.index),
         middle: fingerExtension(lm, FINGER.middle),
         ring:   fingerExtension(lm, FINGER.ring),
         pinky:  fingerExtension(lm, FINGER.pinky),
     };
     const ext = {
+        thumb:  sharpen(raw.thumb),
         index:  sharpen(raw.index),
         middle: sharpen(raw.middle),
         ring:   sharpen(raw.ring),
@@ -70,6 +72,7 @@ function classify(lm) {
 
     // Closed-finger score is the inverse of extended.
     const c = {
+        thumb:  1 - ext.thumb,
         index:  1 - ext.index,
         middle: 1 - ext.middle,
         ring:   1 - ext.ring,
@@ -81,11 +84,15 @@ function classify(lm) {
     const gmean = (...xs) => Math.pow(xs.reduce((a, b) => a * b, 1), 1 / xs.length);
 
     const scores = {
-        fist:         gmean(c.index, c.middle, c.ring, c.pinky),
+        // Fist is penalised when the thumb is sticking out, so a thumbs-up doesn't
+        // get scored as a fist by accident. Tucked-in thumb keeps fist at full strength.
+        fist:         gmean(c.index, c.middle, c.ring, c.pinky) * (0.85 + 0.15 * c.thumb),
         open_palm:    gmean(ext.index, ext.middle, ext.ring, ext.pinky),
         peace:        gmean(ext.index, ext.middle, c.ring, c.pinky),
         // Heart: tight pinch + the other three fingers folded.
         finger_heart: gmean(pinch, pinch, c.middle, c.ring, c.pinky),
+        // Thumbs up: thumb extended, all four other fingers closed.
+        thumbs_up:    gmean(ext.thumb, c.index, c.middle, c.ring, c.pinky),
     };
 
     let best = 'none';

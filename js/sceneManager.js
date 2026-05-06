@@ -2,18 +2,22 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass }     from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { BokehPass }      from 'three/addons/postprocessing/BokehPass.js';
 import { OutputPass }     from 'three/addons/postprocessing/OutputPass.js';
 
-import { Earth }       from './objects/earth.js';
-import { Sakura }      from './objects/sakura.js';
-import { LoveText }    from './objects/loveText.js';
-import { FingerHeart } from './objects/fingerHeart.js';
+import { LifeOrb }        from './objects/lifeOrb.js';
+import { LoveText }       from './objects/loveText.js';
+import { FingerHeart }    from './objects/fingerHeart.js';
+import { LightBeamHeart } from './objects/lightBeamHeart.js';
 
+// Both fist and open_palm map to LifeOrb — same particle system, two initial
+// modes. Fist→open_palm uses the in-place "Life Release" morph (see setGesture).
 const FACTORIES = {
-    fist:         () => new Earth(),
-    open_palm:    () => new Sakura(),
+    fist:         () => new LifeOrb('earth'),
+    open_palm:    () => new LifeOrb('sakura'),
     peace:        () => new LoveText(),
     finger_heart: () => new FingerHeart(),
+    thumbs_up:    () => new LightBeamHeart(),
 };
 
 export class SceneManager {
@@ -34,9 +38,21 @@ export class SceneManager {
         // Cinematic ambience: a quiet star field that does NOT swap with gestures.
         this._buildAmbience();
 
-        // Postprocessing — bloom is what makes the points feel like glowing dust.
+        // Postprocessing pipeline:
+        //   render → DoF (slight, focuses on subject depth) → bloom → output
         this.composer = new EffectComposer(this.renderer);
         this.composer.addPass(new RenderPass(this.scene, this.camera));
+
+        // Slight depth-of-field. Aperture is intentionally small: our particles
+        // use depthWrite: false, so the depth buffer is sparse — heavy DoF would
+        // look noisy. A whisper of focus shift is enough for cinematic feel.
+        this.bokeh = new BokehPass(this.scene, this.camera, {
+            focus:    9.0,
+            aperture: 0.00003,
+            maxblur:  0.0028,
+        });
+        this.composer.addPass(this.bokeh);
+
         // Strength · radius · threshold. Lower strength + higher threshold = a hint of
         // glow only on the brightest specks; broad areas stay matte and easy on the eyes.
         this.bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.35, 0.5, 0.28);
@@ -75,6 +91,17 @@ export class SceneManager {
 
     setGesture(gesture) {
         if (gesture === this.currentGesture) return;
+
+        // ── "Life Release" path ──────────────────────────────────────────
+        // fist → open_palm doesn't swap objects. Instead we ask the existing
+        // orb to morph in place, so the same particles that drew the Earth
+        // become the falling petals — no dissolve/respawn discontinuity.
+        if (this.current?.canMorphTo?.(gesture)) {
+            this.current.requestMorph();
+            this.currentGesture = gesture;
+            return;
+        }
+
         this.currentGesture = gesture;
 
         // 'none' means the user has dropped their hand — clean up with gravity
