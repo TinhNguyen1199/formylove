@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --check \"D:/source/project/birthDay/js/audio.js\")",
+      "Bash(node --check \"D:/source/project/birthDay/js/gestureDetector.js\")",
+      "Bash(node --check \"D:/source/project/birthDay/js/handTracking.js\")",
+      "Bash(node --check \"D:/source/project/birthDay/js/main.js\")",
+      "Bash(node --check \"D:/source/project/birthDay/js/sceneManager.js\")"
+    ]
+  }
+}

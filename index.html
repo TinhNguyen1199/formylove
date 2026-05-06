@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>For Như · A Gesture of Love</title>
+    <link rel="stylesheet" href="style.css" />
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+</head>
+<body>
+    <div id="loader">
+        <div class="loader-heart"></div>
+        <p>Preparing something special...</p>
+    </div>
+
+    <video id="webcam" autoplay muted playsinline></video>
+    <canvas id="hand-overlay"></canvas>
+    <canvas id="three-canvas"></canvas>
+
+    <div id="ui">
+        <div id="gesture-indicator">
+            <svg id="hold-ring" viewBox="0 0 40 40" aria-hidden="true">
+                <circle class="ring-bg" cx="20" cy="20" r="17"/>
+                <circle class="ring-fg" cx="20" cy="20" r="17"/>
+            </svg>
+            <div class="gesture-text">
+                <span id="gesture-name">—</span>
+                <span id="gesture-hint">Show your hand to the camera</span>
+            </div>
+        </div>
+
+        <div id="legend">
+            <div class="legend-item"><span class="ico">✊</span><span>Fist · Earth</span></div>
+            <div class="legend-item"><span class="ico">🖐</span><span>Open palm · Stardust</span></div>
+            <div class="legend-item"><span class="ico">✌</span><span>Peace · I love you</span></div>
+            <div class="legend-item"><span class="ico">🫶</span><span>Finger heart · For you</span></div>
+        </div>
+
+        <button id="start-btn">Begin</button>
+    </div>
+
+    <!-- MediaPipe Hands (stable, browser-friendly) -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
