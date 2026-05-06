@@ -5,7 +5,12 @@
       "Bash(node --check \"D:/source/project/birthDay/js/gestureDetector.js\")",
       "Bash(node --check \"D:/source/project/birthDay/js/handTracking.js\")",
       "Bash(node --check \"D:/source/project/birthDay/js/main.js\")",
-      "Bash(node --check \"D:/source/project/birthDay/js/sceneManager.js\")"
+      "Bash(node --check \"D:/source/project/birthDay/js/sceneManager.js\")",
+      "Bash(python -m http.server 8080 --bind 127.0.0.1)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:8080/)",
+      "Bash(curl -s -o /dev/null -w '%{http_code}  %{url_effective}\\\\n' http://127.0.0.1:8080/index.html http://127.0.0.1:8080/style.css http://127.0.0.1:8080/js/main.js http://127.0.0.1:8080/js/sceneManager.js http://127.0.0.1:8080/js/objects/lightBeamHeart.js http://127.0.0.1:8080/js/objects/lifeOrb.js http://127.0.0.1:8080/js/objects/baseObject.js http://127.0.0.1:8080/js/gestureDetector.js http://127.0.0.1:8080/js/handOverlay.js http://127.0.0.1:8080/js/audio.js)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
