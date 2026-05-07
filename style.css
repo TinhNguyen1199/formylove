@@ -340,6 +340,75 @@ body[data-active="true"] #webcam {
     50%, 100%    { opacity: 0; }
 }
 
+/* ── Welcome card (visit-counter / hồi tưởng) ─────────────────────────── */
+/* Centred overlay that briefly greets her based on how many times she's
+   opened the gift. Fade + scale-up entry, auto-dismiss after ~5s. */
+#welcome-card {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.94);
+    padding: 32px 44px;
+    background: rgba(20, 10, 25, 0.78);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    border: 1px solid rgba(var(--accent-rgb), 0.32);
+    border-radius: 22px;
+    text-align: center;
+    max-width: 460px;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+        opacity 0.6s ease,
+        transform 0.6s cubic-bezier(.4, 0, .2, 1),
+        border-color 0.5s ease,
+        box-shadow 0.5s ease;
+    z-index: 90;        /* above scene + UI cards, below cursor */
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+}
+
+#welcome-card.visible {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    box-shadow:
+        0 24px 70px rgba(0, 0, 0, 0.55),
+        0 0 48px rgba(var(--accent-rgb), 0.22);
+}
+
+.welcome-icon {
+    font-size: 30px;
+    margin-bottom: 12px;
+    line-height: 1;
+}
+
+.welcome-title {
+    font-family: 'Cormorant Garamond', 'Playfair Display', 'Georgia', serif;
+    font-size: 30px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: var(--accent-soft);
+    margin-bottom: 10px;
+    line-height: 1.05;
+}
+
+.welcome-body {
+    font-size: 15px;
+    line-height: 1.6;
+    opacity: 0.88;
+    letter-spacing: 0.3px;
+    margin-bottom: 14px;
+    color: var(--text);
+}
+
+.welcome-footnote {
+    font-size: 12px;
+    font-style: italic;
+    opacity: 0.55;
+    letter-spacing: 0.4px;
+}
+
+.welcome-footnote:empty { display: none; }
+
 .legend-item {
     display: flex;
     align-items: center;

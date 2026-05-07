@@ -5,6 +5,7 @@ import { HandOverlay } from "./handOverlay.js";
 import { AudioFX } from "./audio.js";
 import { ConfettiBurst } from "./confetti.js";
 import { PERSONAL } from "./personal.js";
+import { recordVisit, welcomeMessage } from "./visitTracker.js";
 
 const RING_CIRCUMFERENCE = 106.81; // matches stroke-dasharray in style.css
 const BIRTHDAY = { month: 5, day: 27 };   // Như · 27.5
@@ -24,6 +25,11 @@ const ui = {
   poemCard:   document.getElementById("poem-card"),
   poemHeader: document.querySelector("#poem-card .poem-header"),
   poemLines:  document.getElementById("poem-lines"),
+  welcomeCard:    document.getElementById("welcome-card"),
+  welcomeIcon:    document.querySelector("#welcome-card .welcome-icon"),
+  welcomeTitle:   document.querySelector("#welcome-card .welcome-title"),
+  welcomeBody:    document.querySelector("#welcome-card .welcome-body"),
+  welcomeFoot:    document.querySelector("#welcome-card .welcome-footnote"),
 };
 
 const GESTURE_LABELS = {
@@ -81,6 +87,23 @@ function updateBirthdayCountdown() {
 
 updateBirthdayCountdown();
 setInterval(updateBirthdayCountdown, 60_000);
+
+// ── Welcome card (visit-counter "remembers her") ───────────────────────────
+// Pulls the persisted visit info, picks a tiered greeting, fades the card in
+// for ~5 seconds, then fades it out so the main experience can breathe.
+function showWelcome() {
+  if (!ui.welcomeCard) return;
+  const visit = recordVisit();
+  const msg   = welcomeMessage(visit);
+
+  ui.welcomeIcon.textContent  = msg.icon;
+  ui.welcomeTitle.textContent = msg.title;
+  ui.welcomeBody.textContent  = msg.body;
+  ui.welcomeFoot.textContent  = msg.footnote || "";
+
+  ui.welcomeCard.classList.add("visible");
+  setTimeout(() => ui.welcomeCard.classList.remove("visible"), 5000);
+}
 
 // Coordinates the brief fade-out / fade-in animation when the gesture-name
 // text changes. The CSS handles the visuals; JS just toggles a class around
@@ -271,6 +294,9 @@ ui.startBtn.addEventListener("click", async () => {
     if (ui.bdayCard?.classList.contains("today")) {
       setTimeout(() => confetti.burst({ count: 220, duration: 6000 }), 1200);
     }
+
+    // Greet her based on how many times she's opened this gift.
+    showWelcome();
   } catch (err) {
     console.error(err);
     alert("Could not start the camera. Please grant access and reload.");
