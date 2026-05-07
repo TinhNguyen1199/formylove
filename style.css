@@ -762,6 +762,169 @@ body[data-active="true"] #webcam {
     border-color: rgba(var(--accent-rgb), 0.7);
 }
 
+/* ── Cursor magnet (foreground sparkle dust canvas) ────────────────────── */
+#cursor-magnet {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;          /* above three-canvas (1), below webcam (5) */
+}
+
+/* ── Click-spawned hearts ──────────────────────────────────────────────── */
+.click-heart {
+    position: fixed;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    font-size: 18px;
+    opacity: 0;
+    z-index: 60;         /* above UI cards so they fade over them */
+    will-change: transform, opacity;
+    animation: click-heart-float 1.5s ease-out forwards;
+    animation-delay: var(--delay, 0ms);
+    filter: drop-shadow(0 0 6px rgba(var(--accent-rgb), 0.55));
+}
+
+@keyframes click-heart-float {
+    0% {
+        transform: translate(-50%, -50%) scale(calc(var(--size, 1) * 0.3)) rotate(0deg);
+        opacity: 0;
+    }
+    18% {
+        transform: translate(
+            calc(-50% + var(--dx, 0) * 0.3),
+            calc(-50% + var(--dy, 0) * 0.3)
+        ) scale(var(--size, 1)) rotate(calc(var(--rot, 0) * 0.3));
+        opacity: 1;
+    }
+    100% {
+        transform: translate(
+            calc(-50% + var(--dx, 0)),
+            calc(-50% + var(--dy, 0))
+        ) scale(calc(var(--size, 1) * 0.6)) rotate(var(--rot, 0));
+        opacity: 0;
+    }
+}
+
+/* ── Ambient: shooting star ────────────────────────────────────────────── */
+.shooting-star {
+    position: fixed;
+    top: 0; left: 0;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #fff;
+    pointer-events: none;
+    z-index: 3;
+    box-shadow:
+        0 0 6px #fff,
+        0 0 14px rgba(255, 220, 235, 0.8),
+        0 0 26px rgba(var(--accent-rgb), 0.45);
+    transform: translate(var(--from-x), var(--from-y)) rotate(var(--angle));
+    animation: shooting-star-fly 1.6s ease-out forwards;
+}
+.shooting-star::before {
+    content: '';
+    position: absolute;
+    top: 1px;
+    right: 4px;
+    width: 100px;
+    height: 1.5px;
+    background: linear-gradient(to left, rgba(255, 230, 240, 0.85), transparent);
+    filter: blur(0.5px);
+    border-radius: 1px;
+}
+
+@keyframes shooting-star-fly {
+    0%   { transform: translate(var(--from-x), var(--from-y)) rotate(var(--angle)); opacity: 0; }
+    8%   { opacity: 1; }
+    92%  { opacity: 1; }
+    100% { transform: translate(var(--to-x), var(--to-y)) rotate(var(--angle)); opacity: 0; }
+}
+
+/* ── Ambient: balloons ─────────────────────────────────────────────────── */
+.ambient-balloon {
+    position: fixed;
+    bottom: -60px;
+    left: var(--start-x, 50%);
+    font-size: 30px;
+    pointer-events: none;
+    z-index: 3;
+    opacity: 0;
+    filter: drop-shadow(0 4px 10px rgba(var(--accent-rgb), 0.30));
+    animation: balloon-rise var(--dur, 14s) linear forwards;
+    animation-delay: var(--delay, 0ms);
+}
+@keyframes balloon-rise {
+    0%   { transform: translateY(0) translateX(0) rotate(-3deg); opacity: 0; }
+    8%   { opacity: 0.8; }
+    50%  { transform: translateY(-50vh) translateX(calc(var(--drift, 0) * 0.5)) rotate(3deg); opacity: 0.8; }
+    92%  { opacity: 0.7; }
+    100% { transform: translateY(calc(-100vh - 80px)) translateX(var(--drift, 0)) rotate(-3deg); opacity: 0; }
+}
+
+/* ── Ambient: paper-airplane / love letter ─────────────────────────────── */
+.ambient-plane {
+    position: fixed;
+    left: 0;
+    pointer-events: none;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    transform: translateX(-220px);
+    opacity: 0;
+    animation: plane-fly var(--dur, 12s) linear forwards;
+    will-change: transform, opacity;
+}
+.ambient-plane .plane-icon {
+    font-size: 22px;
+    filter: drop-shadow(0 0 6px rgba(var(--accent-rgb), 0.4));
+}
+.ambient-plane .plane-text {
+    font-family: 'Cormorant Garamond', 'Playfair Display', 'Georgia', serif;
+    font-style: italic;
+    font-size: 15px;
+    color: var(--accent-soft);
+    letter-spacing: 0.4px;
+    text-shadow: 0 0 12px rgba(var(--accent-rgb), 0.55);
+    white-space: nowrap;
+}
+
+@keyframes plane-fly {
+    0%   { transform: translateX(-220px) translateY(0); opacity: 0; }
+    12%  { opacity: 1; }
+    50%  { transform: translateX(50vw) translateY(-12px); opacity: 1; }
+    88%  { opacity: 1; }
+    100% { transform: translateX(calc(100vw + 240px)) translateY(0); opacity: 0; }
+}
+
+/* ── Whisper text (random fade-in/out love phrase) ─────────────────────── */
+.whisper {
+    position: fixed;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    font-family: 'Cormorant Garamond', 'Playfair Display', 'Georgia', serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 17px;
+    color: var(--accent-soft);
+    letter-spacing: 0.5px;
+    text-shadow:
+        0 0 12px rgba(var(--accent-rgb), 0.55),
+        0 0 28px rgba(var(--accent-rgb), 0.30);
+    opacity: 0;
+    z-index: 3;
+    white-space: nowrap;
+    animation: whisper-fade 6.5s ease-in-out forwards;
+}
+
+@keyframes whisper-fade {
+    0%   { opacity: 0;    transform: translate(-50%, calc(-50% + 10px)); }
+    25%  { opacity: 0.95; transform: translate(-50%, -50%); }
+    70%  { opacity: 0.95; transform: translate(-50%, -50%); }
+    100% { opacity: 0;    transform: translate(-50%, calc(-50% - 10px)); }
+}
+
 .legend-item {
     display: flex;
     align-items: center;

@@ -8,6 +8,9 @@ import { PERSONAL } from "./personal.js";
 import { recordVisit, welcomeMessage, streakBadge } from "./visitTracker.js";
 import { watchTimeOfDay } from "./timeOfDay.js";
 import { AdventCalendar } from "./advent.js";
+import { CursorMagnet } from "./cursorMagnet.js";
+import { AmbientEvents } from "./ambientEvents.js";
+import { Whispers } from "./whispers.js";
 
 const RING_CIRCUMFERENCE = 106.81; // matches stroke-dasharray in style.css
 const BIRTHDAY = { month: 5, day: 27 };   // Như · 27.5
@@ -109,6 +112,18 @@ setInterval(updateBirthdayCountdown, 60_000);
 const TIME_GREETINGS = PERSONAL.timeGreetings ?? {};
 watchTimeOfDay((slot) => {
   if (ui.bdayTime) ui.bdayTime.textContent = TIME_GREETINGS[slot.name] ?? "";
+});
+
+// ── Main-screen-alive layer ────────────────────────────────────────────────
+// Cursor magnet → foreground sparkle dust + click-spawned hearts.
+// Ambient events → shooting stars / balloons / paper letters every 18–50s.
+// Whispers → random love phrase fades in every 30–60s.
+new CursorMagnet({ count: 42 });
+new AmbientEvents({ minDelay: 18_000, maxDelay: 50_000 });
+new Whispers({
+  phrases: PERSONAL.whispers ?? [],
+  minDelay: 30_000,
+  maxDelay: 60_000,
 });
 
 // ── Advent calendar (1.5 → 27.5) ───────────────────────────────────────────
