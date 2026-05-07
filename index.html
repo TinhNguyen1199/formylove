@@ -1,29 +1,32 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>For Như · A Gesture of Love</title>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap"
+      rel="stylesheet"
+    />
 
     <link rel="stylesheet" href="style.css" />
 
     <script type="importmap">
-    {
+      {
         "imports": {
-            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
         }
-    }
+      }
     </script>
-</head>
-<body>
+  </head>
+  <body>
     <div id="loader">
-        <div class="loader-heart"></div>
-        <p>Preparing something special...</p>
+      <div class="loader-heart"></div>
+      <p>Preparing something special...</p>
     </div>
 
     <video id="webcam" autoplay muted playsinline></video>
@@ -31,49 +34,105 @@
     <canvas id="three-canvas"></canvas>
 
     <div id="ui">
-        <div id="gesture-indicator">
-            <svg id="hold-ring" viewBox="0 0 40 40" aria-hidden="true">
-                <circle class="ring-bg" cx="20" cy="20" r="17"/>
-                <circle class="ring-fg" cx="20" cy="20" r="17"/>
-            </svg>
-            <div class="gesture-text">
-                <span id="gesture-name">—</span>
-                <span id="gesture-hint">Show your hand to the camera</span>
-            </div>
+      <div id="gesture-indicator">
+        <svg id="hold-ring" viewBox="0 0 40 40" aria-hidden="true">
+          <circle class="ring-bg" cx="20" cy="20" r="17" />
+          <circle class="ring-fg" cx="20" cy="20" r="17" />
+        </svg>
+        <div class="gesture-text">
+          <span id="gesture-name">—</span>
+          <span id="gesture-hint">Show your hand to the camera</span>
         </div>
+      </div>
 
-        <div id="legend">
-            <div class="legend-item"><span class="ico">✊</span><span>Fist · Earth</span></div>
-            <div class="legend-item"><span class="ico">🖐</span><span>Open palm · Stardust</span></div>
-            <div class="legend-item"><span class="ico">✌</span><span>Peace · I love you</span></div>
-            <div class="legend-item"><span class="ico">🫶</span><span>Finger heart · For you</span></div>
-            <div class="legend-item"><span class="ico">👍</span><span>Like · Light & heart</span></div>
+      <div id="streak-chip" aria-live="polite" hidden>
+        <span class="streak-emoji"></span>
+        <div class="streak-text">
+          <div class="streak-count"></div>
+          <div class="streak-name"></div>
         </div>
+      </div>
 
-        <div id="birthday-counter" aria-live="polite">
-            <div class="bc-label">—</div>
-            <div class="bc-sub">Sinh nhật Như · 27.5</div>
+      <button id="advent-toggle" type="button" title="Lịch đếm ngược 27.5">
+        🎁<span class="advent-toggle-pulse"></span>
+      </button>
+
+      <div
+        id="advent-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="advent-title"
+      >
+        <div class="advent-modal">
+          <div class="advent-header">
+            <h2 id="advent-title">Lịch đếm ngược · 27.5</h2>
+            <button id="advent-close" type="button" aria-label="Đóng">×</button>
+          </div>
+          <div id="advent-grid" class="advent-grid"></div>
+          <p class="advent-hint">
+            Hôm nay e được mở 1 hộp · các hộp đã mở vẫn xem lại được · ô tương
+            lai khoá đến lượt.
+          </p>
         </div>
+      </div>
 
-        <div id="poem-card" aria-live="polite">
-            <div class="poem-header"></div>
-            <div id="poem-lines"></div>
+      <div id="advent-reveal" role="dialog" aria-modal="true">
+        <div class="reveal-modal">
+          <div class="reveal-day"></div>
+          <div class="reveal-text"></div>
+          <button id="advent-reveal-close" type="button">Đóng</button>
         </div>
+      </div>
 
-        <div id="welcome-card" aria-live="polite">
-            <div class="welcome-icon"></div>
-            <div class="welcome-title"></div>
-            <div class="welcome-body"></div>
-            <div class="welcome-footnote"></div>
+      <div id="legend">
+        <div class="legend-item">
+          <span class="ico">✊</span><span>Fist · Earth</span>
         </div>
+        <div class="legend-item">
+          <span class="ico">🖐</span><span>Open palm · Stardust</span>
+        </div>
+        <div class="legend-item">
+          <span class="ico">✌</span><span>Peace · I love you</span>
+        </div>
+        <div class="legend-item">
+          <span class="ico">🫶</span><span>Finger heart · For you</span>
+        </div>
+        <div class="legend-item">
+          <span class="ico">👍</span><span>Like · Light & heart</span>
+        </div>
+      </div>
 
-        <button id="start-btn">Begin</button>
+      <div id="birthday-counter" aria-live="polite">
+        <div class="bc-label">—</div>
+        <div class="bc-sub">Sinh nhật Như · 27.5</div>
+        <div class="bc-time"></div>
+      </div>
+
+      <div id="poem-card" aria-live="polite">
+        <div class="poem-header"></div>
+        <div id="poem-lines"></div>
+      </div>
+
+      <div id="welcome-card" aria-live="polite">
+        <div class="welcome-icon"></div>
+        <div class="welcome-title"></div>
+        <div class="welcome-body"></div>
+        <div class="welcome-footnote"></div>
+      </div>
+
+      <button id="start-btn">Begin</button>
     </div>
 
     <!-- MediaPipe Hands (stable, browser-friendly) -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"
+      crossorigin="anonymous"
+    ></script>
 
     <script type="module" src="js/main.js"></script>
-</body>
+  </body>
 </html>

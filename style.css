@@ -409,6 +409,359 @@ body[data-active="true"] #webcam {
 
 .welcome-footnote:empty { display: none; }
 
+/* ── Streak chip ───────────────────────────────────────────────────────── */
+/* Sits below the gesture indicator on the left. Shows the current daily
+   streak + tier badge. Hidden until the first visit is recorded. */
+#streak-chip {
+    position: absolute;
+    top: 100px;
+    left: 28px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px 10px 12px;
+    background: rgba(20, 10, 25, 0.45);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(var(--accent-rgb), 0.18);
+    border-radius: 14px;
+    transition: border-color 0.5s ease, box-shadow 0.5s ease;
+}
+
+#streak-chip[hidden] { display: none; }
+
+#streak-chip.celebrating {
+    border-color: rgba(var(--accent-rgb), 0.55);
+    box-shadow: 0 0 24px rgba(var(--accent-rgb), 0.30);
+}
+
+.streak-emoji {
+    font-size: 22px;
+    line-height: 1;
+}
+
+.streak-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    line-height: 1.1;
+}
+
+.streak-count {
+    font-family: 'Cormorant Garamond', 'Playfair Display', 'Georgia', serif;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--accent-soft);
+}
+
+.streak-name {
+    font-size: 11px;
+    font-style: italic;
+    opacity: 0.6;
+    letter-spacing: 0.4px;
+}
+
+/* Time-of-day greeting line on the countdown card. */
+#birthday-counter .bc-time {
+    font-size: 12px;
+    font-style: italic;
+    opacity: 0.7;
+    letter-spacing: 0.3px;
+    margin-top: 6px;
+    color: var(--accent-soft);
+}
+#birthday-counter .bc-time:empty { display: none; }
+
+/* ── Advent calendar toggle (gift button) ──────────────────────────────── */
+#advent-toggle {
+    position: absolute;
+    top: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 1px solid rgba(var(--accent-rgb), 0.30);
+    background: rgba(20, 10, 25, 0.55);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    color: inherit;
+    font-size: 26px;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: transform 0.35s ease, box-shadow 0.5s ease, border-color 0.5s ease;
+    z-index: 12;
+    overflow: visible;
+}
+
+#advent-toggle:hover {
+    transform: translateX(-50%) scale(1.08);
+    box-shadow: 0 0 32px rgba(var(--accent-rgb), 0.30);
+}
+
+/* Soft halo + pulse when there's a today-box waiting to be opened. */
+.advent-toggle-pulse {
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 2px solid rgba(var(--accent-rgb), 0);
+    pointer-events: none;
+    opacity: 0;
+}
+
+#advent-toggle.has-today .advent-toggle-pulse {
+    animation: advent-pulse 1.8s ease-out infinite;
+    border-color: rgba(var(--accent-rgb), 0.55);
+    opacity: 1;
+}
+
+@keyframes advent-pulse {
+    0%   { transform: scale(0.95); opacity: 0.85; }
+    70%  { transform: scale(1.35); opacity: 0;    }
+    100% { transform: scale(1.35); opacity: 0;    }
+}
+
+/* ── Advent calendar overlay + grid ────────────────────────────────────── */
+#advent-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(8, 6, 15, 0.78);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: grid;
+    place-items: center;
+    z-index: 80;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease;
+}
+
+#advent-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.advent-modal {
+    width: min(640px, 92vw);
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 28px 32px 24px;
+    background: rgba(26, 14, 30, 0.92);
+    border: 1px solid rgba(var(--accent-rgb), 0.30);
+    border-radius: 22px;
+    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.7);
+    transform: scale(0.96);
+    transition: transform 0.35s cubic-bezier(.4, 0, .2, 1);
+}
+
+#advent-overlay.open .advent-modal { transform: scale(1); }
+
+.advent-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.advent-header h2 {
+    font-family: 'Cormorant Garamond', 'Playfair Display', 'Georgia', serif;
+    font-weight: 600;
+    font-size: 24px;
+    letter-spacing: 0.8px;
+    color: var(--accent-soft);
+}
+
+#advent-close {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(var(--accent-rgb), 0.25);
+    background: transparent;
+    color: var(--text);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    transition: border-color 0.3s ease, background 0.3s ease;
+}
+#advent-close:hover {
+    border-color: rgba(var(--accent-rgb), 0.6);
+    background: rgba(var(--accent-rgb), 0.10);
+}
+
+.advent-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+}
+
+.advent-weekday {
+    font-size: 11px;
+    text-align: center;
+    opacity: 0.5;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding-bottom: 4px;
+}
+
+.advent-cell {
+    aspect-ratio: 1;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    cursor: pointer;
+    padding: 0;
+    font-family: inherit;
+    transition:
+        transform 0.25s ease,
+        border-color 0.3s ease,
+        background 0.3s ease,
+        box-shadow 0.4s ease;
+}
+.advent-cell.empty { visibility: hidden; pointer-events: none; }
+
+.advent-cell-day {
+    font-family: 'Cormorant Garamond', 'Playfair Display', 'Georgia', serif;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1;
+}
+.advent-cell-icon {
+    font-size: 12px;
+    opacity: 0.65;
+}
+
+.advent-cell.past {
+    border-color: rgba(var(--accent-rgb), 0.32);
+    background: rgba(var(--accent-rgb), 0.10);
+    color: var(--accent-soft);
+}
+.advent-cell.past:hover {
+    transform: translateY(-2px);
+    border-color: rgba(var(--accent-rgb), 0.55);
+    background: rgba(var(--accent-rgb), 0.16);
+}
+
+.advent-cell.today {
+    border-color: rgba(var(--accent-rgb), 0.65);
+    background: rgba(var(--accent-rgb), 0.18);
+    color: #fff;
+    box-shadow: 0 0 24px rgba(var(--accent-rgb), 0.35);
+    animation: advent-today-pulse 2.4s ease-in-out infinite;
+}
+.advent-cell.today:hover { transform: translateY(-2px) scale(1.04); }
+
+@keyframes advent-today-pulse {
+    0%, 100% { box-shadow: 0 0 16px rgba(var(--accent-rgb), 0.25); }
+    50%      { box-shadow: 0 0 30px rgba(var(--accent-rgb), 0.55); }
+}
+
+.advent-cell.locked {
+    cursor: not-allowed;
+    opacity: 0.55;
+    color: rgba(255, 255, 255, 0.6);
+}
+.advent-cell.locked:hover {
+    transform: translateY(-1px);
+    border-color: rgba(255, 255, 255, 0.18);
+}
+
+.advent-cell.birthday.past .advent-cell-day,
+.advent-cell.birthday.today .advent-cell-day { color: #fff8e1; }
+
+.advent-hint {
+    margin-top: 18px;
+    font-size: 11.5px;
+    font-style: italic;
+    text-align: center;
+    opacity: 0.55;
+    letter-spacing: 0.3px;
+}
+
+/* ── Reveal modal (single-day content) ─────────────────────────────────── */
+#advent-reveal {
+    position: fixed;
+    inset: 0;
+    background: rgba(8, 6, 15, 0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: grid;
+    place-items: center;
+    z-index: 95;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease;
+}
+
+#advent-reveal.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.reveal-modal {
+    width: min(440px, 88vw);
+    padding: 36px 36px 28px;
+    background: rgba(26, 14, 30, 0.95);
+    border: 1px solid rgba(var(--accent-rgb), 0.45);
+    border-radius: 22px;
+    box-shadow:
+        0 32px 80px rgba(0, 0, 0, 0.75),
+        0 0 48px rgba(var(--accent-rgb), 0.25);
+    text-align: center;
+    transform: scale(0.94);
+    transition: transform 0.35s cubic-bezier(.4, 0, .2, 1);
+}
+
+#advent-reveal.open .reveal-modal { transform: scale(1); }
+
+#advent-reveal.locked .reveal-modal {
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.75);
+}
+
+.reveal-day {
+    font-family: 'Cormorant Garamond', 'Playfair Display', 'Georgia', serif;
+    font-size: 36px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: var(--accent-soft);
+    margin-bottom: 12px;
+}
+
+.reveal-text {
+    font-size: 16px;
+    line-height: 1.65;
+    color: var(--text);
+    letter-spacing: 0.3px;
+    margin-bottom: 22px;
+    font-style: italic;
+}
+
+#advent-reveal-close {
+    padding: 10px 26px;
+    border-radius: 999px;
+    border: 1px solid rgba(var(--accent-rgb), 0.45);
+    background: transparent;
+    color: var(--accent-soft);
+    font-family: inherit;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.3s ease, border-color 0.3s ease;
+}
+#advent-reveal-close:hover {
+    background: rgba(var(--accent-rgb), 0.14);
+    border-color: rgba(var(--accent-rgb), 0.7);
+}
+
 .legend-item {
     display: flex;
     align-items: center;

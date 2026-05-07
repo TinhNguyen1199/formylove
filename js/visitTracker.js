@@ -20,29 +20,82 @@ function safeWrite(payload) {
     } catch (_err) { /* incognito / quota — ignore */ }
 }
 
+// YYYY-MM-DD key used for daily streak comparisons.
+function ymd(d) {
+    const y  = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${y}-${mm}-${dd}`;
+}
+
+function computeStreak(stored, today) {
+    const todayKey = ymd(today);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayKey = ymd(yesterday);
+
+    const lastDay  = stored?.lastVisitDay;
+    const lastSeen = stored?.streak ?? 0;
+
+    if (!lastDay)                    return 1;             // first visit
+    if (lastDay === todayKey)        return lastSeen || 1; // same day → no change
+    if (lastDay === yesterdayKey)    return lastSeen + 1;  // consecutive
+    return 1;                                              // streak broke
+}
+
 // Increment & persist. Returns the visit info needed by the UI:
-//   count       — this visit's number (1-based)
-//   lastVisit   — timestamp of the PREVIOUS visit (null on first)
-//   firstVisit  — timestamp of visit #1
+//   count          — this visit's number (1-based)
+//   lastVisit      — timestamp of the PREVIOUS visit (null on first)
+//   firstVisit     — timestamp of visit #1
 //   isFirstVisit
+//   streak         — consecutive-day streak that includes this visit
+//   longestStreak  — best streak achieved so far
+//   streakIncreased — true if this visit grew the streak
 export function recordVisit() {
-    const stored = safeRead() ?? { count: 0, firstVisit: null, lastVisit: null };
-    const now = Date.now();
+    const stored = safeRead() ?? {
+        count: 0, firstVisit: null, lastVisit: null,
+        streak: 0, longestStreak: 0, lastVisitDay: null,
+    };
+    const now = new Date();
+    const ts  = now.getTime();
+
+    const newStreak = computeStreak(stored, now);
+    const streakIncreased = newStreak > (stored.streak ?? 0);
 
     const result = {
-        count:        stored.count + 1,
-        firstVisit:   stored.firstVisit ?? now,
-        lastVisit:    stored.lastVisit,           // previous visit, or null
-        isFirstVisit: stored.count === 0,
+        count:           stored.count + 1,
+        firstVisit:      stored.firstVisit ?? ts,
+        lastVisit:       stored.lastVisit,           // previous visit, or null
+        isFirstVisit:    stored.count === 0,
+        streak:          newStreak,
+        longestStreak:   Math.max(stored.longestStreak ?? 0, newStreak),
+        streakIncreased,
     };
 
     safeWrite({
-        count:      result.count,
-        firstVisit: result.firstVisit,
-        lastVisit:  now,                          // this visit becomes "last" for next time
+        count:         result.count,
+        firstVisit:    result.firstVisit,
+        lastVisit:     ts,                           // becomes "last" for next time
+        streak:        result.streak,
+        longestStreak: result.longestStreak,
+        lastVisitDay:  ymd(now),
     });
 
     return result;
+}
+
+// Tier badges keyed off the consecutive-day streak.
+//   <3   💚  Mới bắt đầu
+//   3+   🌱  Hạt giống
+//   7+   🌸  Cánh hoa nở
+//   14+  🌳  Cây lớn
+//   30+  🌟  Trung thành
+export function streakBadge(streak) {
+    if (streak >= 30) return { emoji: '🌟', name: 'Trung thành' };
+    if (streak >= 14) return { emoji: '🌳', name: 'Cây lớn' };
+    if (streak >= 7)  return { emoji: '🌸', name: 'Cánh hoa nở' };
+    if (streak >= 3)  return { emoji: '🌱', name: 'Hạt giống' };
+    return                   { emoji: '💚', name: 'Mới bắt đầu' };
 }
 
 // Tiered, sentimental welcome copy. Visit number drives the tone — first

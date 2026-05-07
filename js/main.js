@@ -5,7 +5,9 @@ import { HandOverlay } from "./handOverlay.js";
 import { AudioFX } from "./audio.js";
 import { ConfettiBurst } from "./confetti.js";
 import { PERSONAL } from "./personal.js";
-import { recordVisit, welcomeMessage } from "./visitTracker.js";
+import { recordVisit, welcomeMessage, streakBadge } from "./visitTracker.js";
+import { watchTimeOfDay } from "./timeOfDay.js";
+import { AdventCalendar } from "./advent.js";
 
 const RING_CIRCUMFERENCE = 106.81; // matches stroke-dasharray in style.css
 const BIRTHDAY = { month: 5, day: 27 };   // Như · 27.5
@@ -22,6 +24,19 @@ const ui = {
   bdayCard:  document.getElementById("birthday-counter"),
   bdayLabel: document.querySelector("#birthday-counter .bc-label"),
   bdaySub:   document.querySelector("#birthday-counter .bc-sub"),
+  bdayTime:  document.querySelector("#birthday-counter .bc-time"),
+  streakChip:  document.getElementById("streak-chip"),
+  streakEmoji: document.querySelector("#streak-chip .streak-emoji"),
+  streakCount: document.querySelector("#streak-chip .streak-count"),
+  streakName:  document.querySelector("#streak-chip .streak-name"),
+  adventToggle:        document.getElementById("advent-toggle"),
+  adventOverlay:       document.getElementById("advent-overlay"),
+  adventGrid:          document.getElementById("advent-grid"),
+  adventClose:         document.getElementById("advent-close"),
+  adventReveal:        document.getElementById("advent-reveal"),
+  adventRevealDay:     document.querySelector("#advent-reveal .reveal-day"),
+  adventRevealText:    document.querySelector("#advent-reveal .reveal-text"),
+  adventRevealClose:   document.getElementById("advent-reveal-close"),
   poemCard:   document.getElementById("poem-card"),
   poemHeader: document.querySelector("#poem-card .poem-header"),
   poemLines:  document.getElementById("poem-lines"),
@@ -88,6 +103,50 @@ function updateBirthdayCountdown() {
 updateBirthdayCountdown();
 setInterval(updateBirthdayCountdown, 60_000);
 
+// ── Time-of-day greeting + tonal shift ─────────────────────────────────────
+// Background gradient subtly shifts with the hour, and the countdown card
+// shows a per-slot greeting. Refreshes every minute so it follows the day.
+const TIME_GREETINGS = PERSONAL.timeGreetings ?? {};
+watchTimeOfDay((slot) => {
+  if (ui.bdayTime) ui.bdayTime.textContent = TIME_GREETINGS[slot.name] ?? "";
+});
+
+// ── Advent calendar (1.5 → 27.5) ───────────────────────────────────────────
+// Toggle button (gift icon) opens a modal grid laid out as a real May 2026
+// calendar. Past + today's boxes unlock to reveal a daily note; future boxes
+// show a 🔒 with how many days until they open.
+const advent = ui.adventToggle && PERSONAL.adventCalendar?.length
+  ? new AdventCalendar({
+      entries:         PERSONAL.adventCalendar,
+      toggle:          ui.adventToggle,
+      overlay:         ui.adventOverlay,
+      grid:            ui.adventGrid,
+      closeBtn:        ui.adventClose,
+      reveal:          ui.adventReveal,
+      revealDay:       ui.adventRevealDay,
+      revealText:      ui.adventRevealText,
+      revealCloseBtn:  ui.adventRevealClose,
+    })
+  : null;
+
+// ── Streak chip ────────────────────────────────────────────────────────────
+function updateStreakChip(visit) {
+  if (!ui.streakChip || !visit) return;
+  const badge = streakBadge(visit.streak);
+  ui.streakEmoji.textContent = badge.emoji;
+  ui.streakCount.textContent = visit.streak === 1
+    ? `1 ngày`
+    : `${visit.streak} ngày liên tiếp`;
+  ui.streakName.textContent  = badge.name;
+  ui.streakChip.hidden = false;
+
+  // Quick celebration glow when the streak grew this visit.
+  if (visit.streakIncreased && visit.streak > 1) {
+    ui.streakChip.classList.add("celebrating");
+    setTimeout(() => ui.streakChip.classList.remove("celebrating"), 4000);
+  }
+}
+
 // ── Welcome card (visit-counter "remembers her") ───────────────────────────
 // Pulls the persisted visit info, picks a tiered greeting, fades the card in
 // for ~5 seconds, then fades it out so the main experience can breathe.
@@ -103,6 +162,8 @@ function showWelcome() {
 
   ui.welcomeCard.classList.add("visible");
   setTimeout(() => ui.welcomeCard.classList.remove("visible"), 5000);
+
+  updateStreakChip(visit);
 }
 
 // Coordinates the brief fade-out / fade-in animation when the gesture-name

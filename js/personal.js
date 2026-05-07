@@ -44,4 +44,54 @@ export const PERSONAL = {
       "Như ơi · chúc mừng sinh nhật · anh thương em rất nhiều.",
     ],
   },
+
+  // ── Advent calendar (1.5 → 27.5) ─────────────────────────────────────────
+  // 27 small notes — one for each day of May leading up to her birthday.
+  // The day's box unlocks when that calendar date arrives; future boxes are
+  // locked with a 🔒 icon. Past boxes stay open so she can re-read.
+  //
+  // Today's box gently pulses on the calendar so she knows there's something
+  // new to open. EDIT FREELY — these are heartfelt placeholders.
+  adventCalendar: [
+    "1.5 — Tháng 5 đến rồi · còn 27 ngày anh sẽ ôm em chặt nhất.",
+    "2.5 — Sáng nay anh nghĩ về em · ngay khi vừa mở mắt.",
+    "3.5 — Anh đang đếm từng ngày · từng giờ · từng phút.",
+    "4.5 — Anh hỏi cả thế giới: 'biết Như xinh không?' · ai cũng nói có.",
+    "5.5 — Một ngày không có em là một ngày anh thấy thiếu một nửa.",
+    "6.5 — Em là đứa duy nhất anh muốn nhắn 'chào buổi sáng' mỗi ngày.",
+    "7.5 — Tuần đầu tiên qua · còn 20 ngày nữa thôi em ơi.",
+    "8.5 — Anh muốn ăn cơm cùng em · xong rồi anh rửa chén nhé.",
+    "9.5 — Anh thấy 1 con mèo dỗi giống em · anh cười cả buổi.",
+    "10.5 — Còn 17 ngày · anh đang chuẩn bị surprise cho em.",
+    "11.5 — Anh nghe 1 bài hát hôm nay · nó kể về em.",
+    "12.5 — Anh muốn đi du lịch cùng em · em chọn nơi đi nhé.",
+    "13.5 — Em là lý do anh muốn dậy sớm · và muốn ngủ muộn.",
+    "14.5 — Còn 13 ngày · anh hồi hộp giùm em rồi này.",
+    "15.5 — Một nửa tháng đã qua · một nửa anh chưa được thấy em.",
+    "16.5 — Anh thấy hoa anh đào nở · anh nhớ tay em ngay.",
+    "17.5 — Còn 10 ngày · anh đang đếm bằng mười đầu ngón tay.",
+    "18.5 — Anh muốn làm em cười nhiều hơn mỗi ngày một chút.",
+    "19.5 — Em là lý do anh tin có ngày mai sẽ đẹp hơn.",
+    "20.5 — Còn 7 ngày · cả tuần nữa em sẽ là cô gái sinh nhật.",
+    "21.5 — Anh đang nghĩ phải gói quà em thế nào cho đẹp...",
+    "22.5 — Anh đã chuẩn bị xong rồi · giờ chỉ chờ em mở.",
+    "23.5 — Còn 4 ngày · anh hồi hộp như thi đại học.",
+    "24.5 — 3 ngày nữa · anh muốn ôm em chặt như sắp mất em.",
+    "25.5 — 2 ngày · anh đang viết những dòng cuối cho thư em.",
+    "26.5 — Mai là ngày của em · ngủ ngon một đêm cuối nhé.",
+    "27.5 — 🎂 Chúc mừng sinh nhật em yêu! Hôm nay em là người hạnh phúc nhất · vì có anh yêu em nhiều như vậy.",
+  ],
+
+  // ── Time-of-day greetings ────────────────────────────────────────────────
+  // Shown as a tertiary line on the countdown card. Updates every minute so
+  // the message naturally follows the day. EDIT FREELY.
+  timeGreetings: {
+    dawn:      "Chào em buổi sáng ☕",
+    morning:   "Em làm việc tốt nhé 💪",
+    noon:      "Em ăn trưa rồi đó · chăm sóc bản thân nhé",
+    afternoon: "Buổi chiều êm không em?",
+    evening:   "Hoàng hôn rồi · em về nhà chưa?",
+    night:     "Đêm yên · ngủ ngon babe 🌙",
+    late:      "Sao em chưa ngủ? 🌙",
+  },
 };
