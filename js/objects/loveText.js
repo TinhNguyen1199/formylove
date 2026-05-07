@@ -5,8 +5,11 @@ import { MeshSurfaceSampler } from 'three/addons/math/MeshSurfaceSampler.js';
 import { BaseObject } from './baseObject.js';
 import { makeParticleMaterial, buildParticleGeometry } from '../utils/particleMaterial.js';
 import { loadFont } from '../utils/fontLoader.js';
+import { PhotoGallery } from './photoGallery.js';
+import { PERSONAL } from '../personal.js';
 
-// "I love you ♥" — a 3D text point cloud with a heart sampled alongside it.
+// "I love you ♥" — a 3D text point cloud with a heart sampled alongside it,
+// plus a soft ring of personal-memory polaroids floating around the text.
 
 export class LoveText extends BaseObject {
     constructor() {
@@ -14,6 +17,13 @@ export class LoveText extends BaseObject {
         this.ready = false;
         this.formDuration = 1.7;
         this.exitDuration = 1.0;
+
+        // Polaroid gallery — kicks off its own async load and just shows up
+        // once ready, fading in on the same envelope as the text particles.
+        this.gallery = new PhotoGallery(PERSONAL.photos ?? []);
+        this.gallery.addTo(this.group);
+        this.gallery.load().catch((err) => console.warn(err));
+
         this._build().catch((err) => console.error('LoveText build failed', err));
     }
 
@@ -111,6 +121,18 @@ export class LoveText extends BaseObject {
     onUpdate(dt, time, _hand) {
         this.group.rotation.y = Math.sin(time * 0.5) * 0.18;
         this.group.position.y = Math.sin(time * 0.8) * 0.05;
+
+        // Polaroids form-in and dissolve on the same envelope as the text
+        // particles. uDissolve runs 0→1 (forming) then 1→2 (dissolving); we
+        // map both legs so opacity is 0→1→0 across the full lifecycle, then
+        // also gate by live confidence so sloppy poses dim everything together.
+        if (this.gallery) {
+            const d = this.material?.uniforms?.uDissolve?.value ?? 0;
+            const formAlpha     = Math.min(1, d);
+            const dissolveAlpha = d > 1 ? Math.max(0, 1 - (d - 1)) : 1;
+            this.gallery.setOpacity(formAlpha * dissolveAlpha * this._confidenceSmooth);
+            this.gallery.update(dt, time);
+        }
     }
 
     isDone() {
@@ -121,6 +143,11 @@ export class LoveText extends BaseObject {
 
     dispose() {
         this._disposed = true;
+        if (this.gallery) {
+            this.gallery.removeFrom(this.group);
+            this.gallery.dispose();
+            this.gallery = null;
+        }
         super.dispose();
     }
 }
