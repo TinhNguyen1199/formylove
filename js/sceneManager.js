@@ -8,16 +8,17 @@ import { OutputPass }     from 'three/addons/postprocessing/OutputPass.js';
 import { LifeOrb }        from './objects/lifeOrb.js';
 import { LoveText }       from './objects/loveText.js';
 import { FingerHeart }    from './objects/fingerHeart.js';
-import { LightBeamHeart } from './objects/lightBeamHeart.js';
 
 // Both fist and open_palm map to LifeOrb — same particle system, two initial
 // modes. Fist→open_palm uses the in-place "Life Release" morph (see setGesture).
+// thumbs_up shares FingerHeart so the "Like" gesture lands on the same heart
+// of light as the finger-heart pose.
 const FACTORIES = {
     fist:         () => new LifeOrb('earth'),
     open_palm:    () => new LifeOrb('sakura'),
     peace:        () => new LoveText(),
     finger_heart: () => new FingerHeart(),
-    thumbs_up:    () => new LightBeamHeart(),
+    thumbs_up:    () => new FingerHeart(),
 };
 
 export class SceneManager {

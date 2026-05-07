@@ -70,6 +70,7 @@ attribute vec3 aEarthColor;
 attribute vec3 aSakuraColor;
 attribute float aSize;
 attribute vec3 aDispDir;
+attribute float aSakuraVisible;   // 1 = visible in Sakura mode, 0 = hidden — thins the wind
 
 uniform float uTime;
 uniform float uSakuraTime;
@@ -125,7 +126,8 @@ void main() {
     // Sakura visibility cycle (off-screen wrap fade); Earth is always visible.
     float visTop = smoothstep(uTop,    uTop    - 2.0, pos.y);
     float visBot = smoothstep(uBottom, uBottom + 2.0, pos.y);
-    float visibility = mix(1.0, visTop * visBot, ePhase);
+    float sakuraMask = mix(1.0, aSakuraVisible, ePhase);   // thins wind density
+    float visibility = mix(1.0, visTop * visBot, ePhase) * sakuraMask;
 
     // Anticipation glow — gentle, never harsh.
     float glow = 1.0 + uAnticipation * 0.30;
@@ -245,6 +247,12 @@ export class LifeOrb extends BaseObject {
         const sakuraColors = new Float32Array(total * 3);
         const sizes        = new Float32Array(total);
         const dispDirs     = new Float32Array(total * 3);
+        const sakuraVisible = new Float32Array(total);
+
+        // Roughly half of body particles participate in the Sakura wind. Earth
+        // mode shows everyone; Sakura mode only shows the marked subset, which
+        // halves the on-screen petal count without thinning Earth detail.
+        const SAKURA_VISIBLE_RATIO = 0.5;
 
         const golden = Math.PI * (3 - Math.sqrt(5));
 
@@ -296,6 +304,8 @@ export class LifeOrb extends BaseObject {
             dispDirs[i * 3]     = dx / dl;
             dispDirs[i * 3 + 1] = dy / dl;
             dispDirs[i * 3 + 2] = dz / dl;
+
+            sakuraVisible[i] = Math.random() < SAKURA_VISIBLE_RATIO ? 1 : 0;
         }
 
         // ── Text slots: sakura behaviour pre-filled, sized to 0 (invisible
@@ -303,6 +313,7 @@ export class LifeOrb extends BaseObject {
         //    the body once the text data arrives.
         for (let i = bodyCount; i < total; i++) {
             sizes[i] = 0;
+            sakuraVisible[i] = Math.random() < SAKURA_VISIBLE_RATIO ? 1 : 0;
 
             const sc = SAKURA_PALETTE[(Math.random() * SAKURA_PALETTE.length) | 0];
             sakuraColors[i * 3]     = sc.r;
@@ -328,6 +339,7 @@ export class LifeOrb extends BaseObject {
         geo.setAttribute('aSakuraColor', new THREE.BufferAttribute(sakuraColors, 3));
         geo.setAttribute('aSize',        new THREE.BufferAttribute(sizes, 1));
         geo.setAttribute('aDispDir',     new THREE.BufferAttribute(dispDirs, 3));
+        geo.setAttribute('aSakuraVisible', new THREE.BufferAttribute(sakuraVisible, 1));
 
         this.material = new THREE.ShaderMaterial({
             uniforms: {

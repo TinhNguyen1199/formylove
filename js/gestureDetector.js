@@ -87,7 +87,9 @@ function classify(lm) {
         // Fist is penalised when the thumb is sticking out, so a thumbs-up doesn't
         // get scored as a fist by accident. Tucked-in thumb keeps fist at full strength.
         fist:         gmean(c.index, c.middle, c.ring, c.pinky) * (0.85 + 0.15 * c.thumb),
-        open_palm:    gmean(ext.index, ext.middle, ext.ring, ext.pinky),
+        // Open palm requires all five fingers extended — including the thumb —
+        // so a relaxed four-finger spread doesn't trip the gesture.
+        open_palm:    gmean(ext.thumb, ext.index, ext.middle, ext.ring, ext.pinky),
         peace:        gmean(ext.index, ext.middle, c.ring, c.pinky),
         // Heart: tight pinch + the other three fingers folded.
         finger_heart: gmean(pinch, pinch, c.middle, c.ring, c.pinky),

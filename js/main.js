@@ -22,7 +22,7 @@ const GESTURE_LABELS = {
   open_palm: { name: "Open Palm", hint: "Sakura wind · let it bloom" },
   peace: { name: "Peace", hint: "Words for you" },
   finger_heart: { name: "Finger Heart", hint: "Made with love · Như 27.5" },
-  thumbs_up: { name: "Like", hint: "A beam of light · a yes from the heart" },
+  thumbs_up: { name: "Like", hint: "A yes from the heart · Như 27.5" },
   none: { name: "—", hint: "Show your hand to the camera" },
 };
 
@@ -30,9 +30,9 @@ const sceneManager = new SceneManager(document.getElementById("three-canvas"));
 const overlay = new HandOverlay(ui.overlayCanvas);
 const audio = new AudioFX();
 const detector = new GestureDetector({
-  // Confirm a gesture only after 3 seconds of stable hold — the progress ring
+  // Confirm a gesture only after 1.5 seconds of stable hold — the progress ring
   // on the gesture card fills clockwise to show the timer to the user.
-  holdMs: 1000,
+  holdMs: 1500,
   onChange: (gesture) => {
     const label = GESTURE_LABELS[gesture] ?? GESTURE_LABELS.none;
     ui.name.textContent = label.name;
