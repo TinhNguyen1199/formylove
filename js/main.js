@@ -29,15 +29,32 @@ const GESTURE_LABELS = {
 const sceneManager = new SceneManager(document.getElementById("three-canvas"));
 const overlay = new HandOverlay(ui.overlayCanvas);
 const audio = new AudioFX();
+// Coordinates the brief fade-out / fade-in animation when the gesture-name
+// text changes. The CSS handles the visuals; JS just toggles a class around
+// the textContent swap so old and new labels don't pop in suddenly.
+function setGestureLabel(label) {
+  ui.name.classList.add("fading");
+  setTimeout(() => {
+    ui.name.textContent = label.name;
+    ui.name.classList.remove("fading");
+  }, 180);
+  ui.hint.textContent = label.hint;
+}
+
 const detector = new GestureDetector({
   // Confirm a gesture only after 1 seconds of stable hold — the progress ring
   // on the gesture card fills clockwise to show the timer to the user.
   holdMs: 1000,
   onChange: (gesture) => {
     const label = GESTURE_LABELS[gesture] ?? GESTURE_LABELS.none;
-    ui.name.textContent = label.name;
-    ui.hint.textContent = label.hint;
+    setGestureLabel(label);
     ui.indicator.classList.toggle("active", gesture !== "none");
+
+    // Drive gesture-aware UI tinting via body attributes — CSS variables
+    // under body[data-gesture] swap accent colours; the webcam glow lights
+    // up while data-active is true.
+    document.body.dataset.gesture = gesture;
+    document.body.dataset.active  = gesture !== "none" ? "true" : "false";
 
     if (gesture !== "none") audio.playGestureCue(gesture);
     sceneManager.setGesture(gesture);

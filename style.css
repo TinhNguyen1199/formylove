@@ -1,9 +1,42 @@
 :root {
     --bg-1: #08060f;
     --bg-2: #1a0a1f;
+    /* Default brand palette — pink/rose. Each gesture overrides --accent
+       and --accent-soft via body[data-gesture] selectors below, so the UI
+       tints harmonise with whichever scene is active. */
     --accent: #ff6fa3;
     --accent-soft: #ffb3c8;
+    --accent-rgb: 255, 111, 163;        /* used by rgba() shadows */
     --text: #f6e9f1;
+}
+
+/* Fist → emerald planet. */
+body[data-gesture="fist"] {
+    --accent: #6fbf9d;
+    --accent-soft: #a8d8c0;
+    --accent-rgb: 111, 191, 157;
+}
+
+/* Open palm → sakura wind. */
+body[data-gesture="open_palm"] {
+    --accent: #d8909f;
+    --accent-soft: #ecbac6;
+    --accent-rgb: 216, 144, 159;
+}
+
+/* Peace → soft lavender words. */
+body[data-gesture="peace"] {
+    --accent: #b09ad0;
+    --accent-soft: #c8b8e0;
+    --accent-rgb: 176, 154, 208;
+}
+
+/* Finger heart + Like → keep the brand rose. */
+body[data-gesture="finger_heart"],
+body[data-gesture="thumbs_up"] {
+    --accent: #ff6fa3;
+    --accent-soft: #ffb3c8;
+    --accent-rgb: 255, 111, 163;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -18,33 +51,44 @@ html, body {
     cursor: none;
 }
 
-#webcam {
-    position: fixed;
-    top: 16px;
-    right: 16px;
-    width: 220px;
-    height: 165px;
-    border-radius: 14px;
-    object-fit: cover;
-    transform: scaleX(-1);
-    opacity: 0.55;
-    border: 1px solid rgba(255, 179, 200, 0.25);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 24px rgba(255, 111, 163, 0.15);
-    z-index: 5;
-    pointer-events: none;
-    transition: opacity 0.6s ease;
-}
-
-/* Hand-skeleton overlay — sits on top of the webcam, mirrors-free coords. */
+/* Shared soft mask so both the webcam frame and the hand-skeleton overlay
+   fade organically into the page background instead of cutting hard at the
+   rectangle edges. */
+#webcam,
 #hand-overlay {
     position: fixed;
-    top: 16px;
-    right: 16px;
+    top: 22px;
+    right: 22px;
     width: 220px;
     height: 165px;
-    border-radius: 14px;
+    border-radius: 22px;
     pointer-events: none;
-    z-index: 6;
+    -webkit-mask-image: radial-gradient(ellipse 105% 105% at center, #000 55%, transparent 100%);
+            mask-image: radial-gradient(ellipse 105% 105% at center, #000 55%, transparent 100%);
+}
+
+#webcam {
+    object-fit: cover;
+    transform: scaleX(-1);
+    opacity: 0.38;
+    border: 1px solid rgba(var(--accent-rgb), 0.22);
+    box-shadow:
+        0 12px 36px rgba(0, 0, 0, 0.55),
+        0 0 24px rgba(var(--accent-rgb), 0.10);
+    z-index: 5;
+    transition: opacity 0.6s ease, box-shadow 0.5s ease, border-color 0.5s ease;
+}
+
+#hand-overlay { z-index: 6; }
+
+/* When any gesture is active, lift the webcam slightly and bloom an accent
+   glow around it — feedback that hand tracking is engaged. */
+body[data-active="true"] #webcam {
+    opacity: 0.55;
+    border-color: rgba(var(--accent-rgb), 0.55);
+    box-shadow:
+        0 12px 36px rgba(0, 0, 0, 0.55),
+        0 0 36px rgba(var(--accent-rgb), 0.30);
 }
 
 #three-canvas {
@@ -67,44 +111,60 @@ html, body {
 
 #gesture-indicator {
     position: absolute;
-    top: 24px;
-    left: 24px;
+    top: 28px;
+    left: 28px;
     display: flex;
     flex-direction: row;
     align-items: center;
     gap: 14px;
-    padding: 14px 20px 14px 14px;
+    padding: 14px 22px 14px 14px;
     background: rgba(20, 10, 25, 0.45);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(255, 179, 200, 0.18);
-    border-radius: 14px;
-    min-width: 240px;
-    transition: border-color 0.4s ease, box-shadow 0.4s ease;
+    border: 1px solid rgba(var(--accent-rgb), 0.18);
+    border-radius: 16px;
+    min-width: 260px;
+    transition: border-color 0.5s ease, box-shadow 0.5s ease;
 }
 
 #gesture-indicator.active {
-    border-color: rgba(255, 111, 163, 0.55);
-    box-shadow: 0 0 32px rgba(255, 111, 163, 0.25);
+    border-color: rgba(var(--accent-rgb), 0.55);
+    box-shadow: 0 0 32px rgba(var(--accent-rgb), 0.22);
 }
 
 .gesture-text {
     display: flex;
     flex-direction: column;
     gap: 4px;
+    overflow: hidden;
 }
 
 #gesture-name {
-    font-size: 18px;
+    /* Serif display face for a luxurious, editorial feel. The accent colour
+       picks up the per-gesture palette set on body[data-gesture]. */
+    font-family: 'Cormorant Garamond', 'Playfair Display', 'Georgia', serif;
+    font-size: 24px;
+    line-height: 1.05;
     font-weight: 600;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.6px;
     color: var(--accent-soft);
+    transition:
+        opacity 180ms ease,
+        transform 220ms cubic-bezier(.4, 0, .2, 1),
+        color 0.5s ease;
+}
+
+#gesture-name.fading {
+    opacity: 0;
+    transform: translateY(-6px);
 }
 
 #gesture-hint {
-    font-size: 12px;
-    opacity: 0.6;
-    letter-spacing: 0.3px;
+    font-size: 12.5px;
+    font-style: italic;
+    opacity: 0.65;
+    letter-spacing: 0.4px;
+    transition: opacity 0.4s ease;
 }
 
 /* Hold-progress ring — fills clockwise as a candidate gesture is held.
@@ -116,8 +176,9 @@ html, body {
 }
 #hold-ring .ring-bg {
     fill: none;
-    stroke: rgba(255, 179, 200, 0.16);
+    stroke: rgba(var(--accent-rgb), 0.16);
     stroke-width: 2.5;
+    transition: stroke 0.5s ease;
 }
 #hold-ring .ring-fg {
     fill: none;
@@ -128,8 +189,8 @@ html, body {
     stroke-dashoffset: 106.81;
     transform: rotate(-90deg);
     transform-origin: 50% 50%;
-    transition: stroke-dashoffset 0.08s linear, stroke 0.3s ease;
-    filter: drop-shadow(0 0 4px rgba(255, 111, 163, 0.4));
+    transition: stroke-dashoffset 0.08s linear, stroke 0.5s ease, filter 0.5s ease;
+    filter: drop-shadow(0 0 4px rgba(var(--accent-rgb), 0.4));
 }
 #gesture-indicator.active #hold-ring .ring-fg {
     stroke: var(--accent);
@@ -137,8 +198,8 @@ html, body {
 
 #legend {
     position: absolute;
-    bottom: 24px;
-    left: 24px;
+    bottom: 28px;
+    left: 28px;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -146,9 +207,10 @@ html, body {
     background: rgba(20, 10, 25, 0.45);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(255, 179, 200, 0.18);
-    border-radius: 14px;
+    border: 1px solid rgba(var(--accent-rgb), 0.18);
+    border-radius: 16px;
     font-size: 13px;
+    transition: border-color 0.5s ease;
 }
 
 .legend-item {

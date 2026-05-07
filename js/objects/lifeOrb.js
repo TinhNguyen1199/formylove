@@ -128,7 +128,15 @@ void main() {
     // Half-Lambert keeps the dark side velvety, never black. A soft rim glow
     // bumps the silhouette so the planet pops gently against the starfield.
     // Both effects fade off as we morph into petals (ePhase → 1).
-    vec3 worldNormal = normalize(earthPos);
+    //
+    // Safety: if earthPos is the zero vector (e.g. text-slot particles in
+    // fresh sakura mode whose position attribute is (0,0,0)), normalize
+    // returns NaN and the NaN propagates through colour into the framebuffer.
+    // Guard with a length check and a benign default normal so no fragment
+    // ever writes NaN — this was causing intermittent black frames on open_palm.
+    float earthLen = length(earthPos);
+    vec3 worldNormal = earthLen > 0.0001 ? earthPos / earthLen : vec3(0.0, 1.0, 0.0);
+
     float halfLambert = 0.5 + 0.5 * dot(worldNormal, uLightDir);
     halfLambert = halfLambert * halfLambert;       // softens the falloff
     float lit = 0.65 + 0.45 * halfLambert;         // 0.65..1.10 envelope
@@ -153,10 +161,11 @@ void main() {
     vec4 mvPos = modelViewMatrix * vec4(pos, 1.0);
     gl_Position = projectionMatrix * mvPos;
 
-    // Earth points: tiny and dense so the surface reads as marble glass.
-    // Sakura petals: full size for clear shape definition.
-    float earthSize  = aSize * 0.42;
-    float sakuraSize = aSize;
+    // Earth points: tiny so the sparse Fibonacci grid reads as scattered glow.
+    // Sakura petals: deliberately larger so each petal has clear shape and the
+    // wind feels full even with the same particle pool driving the planet.
+    float earthSize  = aSize * 0.34;
+    float sakuraSize = aSize * 1.20;
     float currentSize = mix(earthSize, sakuraSize, ePhase);
     gl_PointSize = currentSize * uForm * (180.0 / max(-mvPos.z, 0.1));
 
@@ -386,9 +395,10 @@ export class LifeOrb extends BaseObject {
         const sizes         = new Float32Array(total);
         const sakuraVisible = new Float32Array(total);
 
-        // Half of body particles participate in Sakura mode; thins the wind
-        // density without affecting Earth detail.
-        const SAKURA_VISIBLE_RATIO = 0.5;
+        // ~72% of body particles participate in Sakura mode. Earth stays
+        // sparse (we cut bodyCount and use a small earth size multiplier),
+        // but the wind reads as a fuller petal field.
+        const SAKURA_VISIBLE_RATIO = 0.72;
         const golden = Math.PI * (3 - Math.sqrt(5));
 
         // ── Body — Fibonacci sphere with marbled colours ──────────────────
@@ -413,31 +423,41 @@ export class LifeOrb extends BaseObject {
             sakuraColors[i * 3 + 1] = sc.g;
             sakuraColors[i * 3 + 2] = sc.b;
 
-            sakuraXZ[i * 2]      = (Math.random() - 0.5) * 14.0;
-            sakuraXZ[i * 2 + 1]  = (Math.random() - 0.5) * 6.0;
-            sakuraSpeed[i * 2]   = 0.55 + Math.random() * 0.75;
-            sakuraSpeed[i * 2+1] = 0.45 + Math.random() * 0.65;
+            sakuraXZ[i * 2]      = (Math.random() - 0.5) * 16.0;
+            sakuraXZ[i * 2 + 1]  = (Math.random() - 0.5) * 10.0;
+            sakuraSpeed[i * 2]   = 0.65 + Math.random() * 0.80;
+            sakuraSpeed[i * 2+1] = 0.50 + Math.random() * 0.70;
             sakuraPhase[i * 2]   = Math.random() * 18;
             sakuraPhase[i * 2+1] = Math.random() * Math.PI * 2;
 
-            sizes[i] = 1.10 + Math.random() * 0.80;
+            sizes[i] = 1.40 + Math.random() * 0.90;
             sakuraVisible[i] = Math.random() < SAKURA_VISIBLE_RATIO ? 1 : 0;
         }
 
         // ── Text slots — sized to 0; _loadText fills them in once font ready
+        // Even though they're invisible (size 0), give them a real position on
+        // the sphere so the shader's normalize(earthPos) can't blow up when
+        // _loadText never runs (fresh open_palm path).
         for (let i = bodyCount; i < total; i++) {
             sizes[i] = 0;
             sakuraVisible[i] = Math.random() < SAKURA_VISIBLE_RATIO ? 1 : 0;
+
+            const ty = 1 - 2 * Math.random();
+            const tr = Math.sqrt(Math.max(0, 1 - ty * ty));
+            const tt = Math.random() * Math.PI * 2;
+            positions[i * 3]     = Math.cos(tt) * tr * RADIUS;
+            positions[i * 3 + 1] = ty * RADIUS;
+            positions[i * 3 + 2] = Math.sin(tt) * tr * RADIUS;
 
             const sc = SAKURA_PALETTE[(Math.random() * SAKURA_PALETTE.length) | 0];
             sakuraColors[i * 3]     = sc.r;
             sakuraColors[i * 3 + 1] = sc.g;
             sakuraColors[i * 3 + 2] = sc.b;
 
-            sakuraXZ[i * 2]      = (Math.random() - 0.5) * 14.0;
-            sakuraXZ[i * 2 + 1]  = (Math.random() - 0.5) * 6.0;
-            sakuraSpeed[i * 2]   = 0.55 + Math.random() * 0.75;
-            sakuraSpeed[i * 2+1] = 0.45 + Math.random() * 0.65;
+            sakuraXZ[i * 2]      = (Math.random() - 0.5) * 16.0;
+            sakuraXZ[i * 2 + 1]  = (Math.random() - 0.5) * 10.0;
+            sakuraSpeed[i * 2]   = 0.65 + Math.random() * 0.80;
+            sakuraSpeed[i * 2+1] = 0.50 + Math.random() * 0.70;
             sakuraPhase[i * 2]   = Math.random() * 18;
             sakuraPhase[i * 2+1] = Math.random() * Math.PI * 2;
         }
