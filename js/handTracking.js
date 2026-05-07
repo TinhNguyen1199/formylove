@@ -40,12 +40,29 @@ export class HandTracker {
         }
         this.camera = new Camera(this.videoEl, {
             onFrame: async () => {
+                // Skip the heavy MediaPipe inference while paused. The Camera
+                // keeps grabbing frames (cheap) so resuming is instant.
+                if (this._paused) return;
                 await this.hands.send({ image: this.videoEl });
             },
             width: 640,
             height: 480,
         });
         await this.camera.start();
+    }
+
+    // Stop running MediaPipe inference. Use this when entering a non-gesture
+    // mode (e.g. game mode) so the model doesn't burn CPU in the background.
+    // On pause we push a final null result so the gesture detector / scene
+    // clear out — otherwise the last detected gesture would stay "stuck".
+    pause() {
+        if (this._paused) return;
+        this._paused = true;
+        this.onResults?.(null);
+    }
+
+    resume() {
+        this._paused = false;
     }
 
     stop() {

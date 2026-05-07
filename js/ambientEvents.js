@@ -30,6 +30,21 @@ export class AmbientEvents {
     this._timeout = null;
   }
 
+  pause() {
+    if (this._paused) return;
+    this._paused = true;
+    if (this._timeout) {
+      clearTimeout(this._timeout);
+      this._timeout = null;
+    }
+  }
+
+  resume() {
+    if (!this._paused) return;
+    this._paused = false;
+    this._scheduleNext();
+  }
+
   _scheduleNext() {
     const delay =
       this.minDelay + Math.random() * (this.maxDelay - this.minDelay);

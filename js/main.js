@@ -11,6 +11,7 @@ import { AdventCalendar } from "./advent.js";
 import { CursorMagnet } from "./cursorMagnet.js";
 import { AmbientEvents } from "./ambientEvents.js";
 import { Whispers } from "./whispers.js";
+import { GameManager } from "./games/manager.js";
 
 const RING_CIRCUMFERENCE = 106.81; // matches stroke-dasharray in style.css
 const BIRTHDAY = { month: 5, day: 27 };   // Như · 27.5
@@ -48,6 +49,13 @@ const ui = {
   welcomeTitle:   document.querySelector("#welcome-card .welcome-title"),
   welcomeBody:    document.querySelector("#welcome-card .welcome-body"),
   welcomeFoot:    document.querySelector("#welcome-card .welcome-footnote"),
+  gameToggle:    document.getElementById("game-toggle"),
+  gameMenu:      document.getElementById("game-menu"),
+  gameMenuClose: document.getElementById("game-menu-close"),
+  gameContainer: document.getElementById("game-container"),
+  gameClose:     document.getElementById("game-close"),
+  gameStats:     document.getElementById("game-stats"),
+  gameStage:     document.getElementById("game-stage"),
 };
 
 const GESTURE_LABELS = {
@@ -118,9 +126,10 @@ watchTimeOfDay((slot) => {
 // Cursor magnet → foreground sparkle dust + click-spawned hearts.
 // Ambient events → shooting stars / balloons / paper letters every 18–50s.
 // Whispers → random love phrase fades in every 30–60s.
-new CursorMagnet({ count: 42 });
-new AmbientEvents({ minDelay: 18_000, maxDelay: 50_000 });
-new Whispers({
+// Bound to vars so the GameManager can pause them while a game is running.
+const cursorMagnet  = new CursorMagnet({ count: 42 });
+const ambientEvents = new AmbientEvents({ minDelay: 18_000, maxDelay: 50_000 });
+const whispers      = new Whispers({
   phrases: PERSONAL.whispers ?? [],
   minDelay: 30_000,
   maxDelay: 60_000,
@@ -290,6 +299,26 @@ const tracker = new HandTracker({
     overlay.setLandmarks(landmarks);
   },
 });
+
+// ── Games (Bubble Pop / Heart Catcher / Memory Match) ──────────────────────
+// 🎮 toggle opens a menu; selecting a game hides the gesture UI via
+// body.game-active and runs the game in its own container until Esc / ✕.
+// All gesture-mode systems are paused while a game is running so the game
+// loop owns the CPU/GPU. (Must be wired AFTER `tracker` is declared above —
+// reading it earlier hits the TDZ.)
+if (ui.gameToggle && ui.gameMenu && ui.gameContainer) {
+  new GameManager({
+    menuToggle:  ui.gameToggle,
+    menu:        ui.gameMenu,
+    menuClose:   ui.gameMenuClose,
+    container:   ui.gameContainer,
+    closeBtn:    ui.gameClose,
+    statsEl:     ui.gameStats,
+    stageEl:     ui.gameStage,
+    photos:      PERSONAL.photos ?? [],
+    pausables:   [sceneManager, cursorMagnet, ambientEvents, whispers, tracker],
+  });
+}
 
 // Drive the overlay's fade animation independently of MediaPipe's frame cadence.
 (function overlayLoop() {

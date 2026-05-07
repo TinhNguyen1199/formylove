@@ -57,6 +57,43 @@
         🎁<span class="advent-toggle-pulse"></span>
       </button>
 
+      <button id="game-toggle" type="button" title="Chơi game">🎮</button>
+
+      <div id="game-menu" role="dialog" aria-modal="true" hidden>
+        <div class="gm-modal">
+          <div class="gm-header">
+            <h2>Em chơi gì hôm nay?</h2>
+            <button id="game-menu-close" type="button" aria-label="Đóng">×</button>
+          </div>
+          <div class="gm-cards">
+            <button class="gm-card" type="button" data-game="bubble">
+              <span class="gm-icon">🫧</span>
+              <span class="gm-name">Bubble Pop</span>
+              <span class="gm-desc">Pop bóng tim · zen mode · không có thua</span>
+            </button>
+            <button class="gm-card" type="button" data-game="catcher">
+              <span class="gm-icon">💗</span>
+              <span class="gm-name">Heart Catcher</span>
+              <span class="gm-desc">Hứng tim rơi · combo high score</span>
+            </button>
+            <button class="gm-card" type="button" data-game="memory">
+              <span class="gm-icon">📚</span>
+              <span class="gm-name">Memory Match</span>
+              <span class="gm-desc">Lật cặp ảnh · ghi nhớ kỷ niệm</span>
+            </button>
+          </div>
+          <p class="gm-hint">Esc hoặc nút ✕ để thoát · gesture sẽ tạm nghỉ trong khi chơi.</p>
+        </div>
+      </div>
+
+      <div id="game-container" hidden>
+        <div class="gc-topbar">
+          <div id="game-stats" class="gc-stats"></div>
+          <button id="game-close" type="button" aria-label="Thoát game">✕ Thoát</button>
+        </div>
+        <div id="game-stage" class="gc-stage"></div>
+      </div>
+
       <div
         id="advent-overlay"
         role="dialog"

@@ -81,13 +81,28 @@ export class SceneManager {
 
     start() {
         const tick = () => {
-            const dt = Math.min(this.clock.getDelta(), 0.05);
-            const t  = this.clock.elapsedTime;
-            this._update(dt, t);
-            this.composer.render();
+            if (!this._paused) {
+                const dt = Math.min(this.clock.getDelta(), 0.05);
+                const t  = this.clock.elapsedTime;
+                this._update(dt, t);
+                this.composer.render();
+            }
             requestAnimationFrame(tick);
         };
         requestAnimationFrame(tick);
+    }
+
+    // Pause every-frame work (animation update + composer render). The rAF
+    // chain itself keeps spinning so resume is instant — but the heavy bloom
+    // + DoF + particle passes are skipped, freeing the CPU/GPU for whatever
+    // is on top (e.g. the games container).
+    pause() { this._paused = true; }
+
+    resume() {
+        this._paused = false;
+        // Discard accumulated dt so animations don't lurch on the first frame
+        // after a long pause.
+        this.clock?.getDelta();
     }
 
     setGesture(gesture) {

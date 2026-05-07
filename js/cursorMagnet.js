@@ -57,7 +57,27 @@ export class CursorMagnet {
         this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 
+    pause() {
+        if (this._paused) return;
+        this._paused = true;
+        // Clear once so leftover sparkles aren't frozen on screen.
+        this.ctx?.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    }
+
+    resume() {
+        if (!this._paused) return;
+        this._paused = false;
+        this._lastT = performance.now();
+    }
+
     _tick(t) {
+        if (this._paused) {
+            // Keep the rAF chain alive so resume is instant; just skip work.
+            this._lastT = t;
+            requestAnimationFrame((tt) => this._tick(tt));
+            return;
+        }
+
         const dt = Math.min(t - this._lastT, 50);
         this._lastT = t;
         const k = dt / 16.66;
