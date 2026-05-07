@@ -3,8 +3,10 @@ import { HandTracker } from "./handTracking.js";
 import { GestureDetector } from "./gestureDetector.js";
 import { HandOverlay } from "./handOverlay.js";
 import { AudioFX } from "./audio.js";
+import { ConfettiBurst } from "./confetti.js";
 
 const RING_CIRCUMFERENCE = 106.81; // matches stroke-dasharray in style.css
+const BIRTHDAY = { month: 5, day: 27 };   // Như · 27.5
 
 const ui = {
   loader: document.getElementById("loader"),
@@ -15,6 +17,9 @@ const ui = {
   video: document.getElementById("webcam"),
   overlayCanvas: document.getElementById("hand-overlay"),
   ringFg: document.querySelector("#hold-ring .ring-fg"),
+  bdayCard:  document.getElementById("birthday-counter"),
+  bdayLabel: document.querySelector("#birthday-counter .bc-label"),
+  bdaySub:   document.querySelector("#birthday-counter .bc-sub"),
 };
 
 const GESTURE_LABELS = {
@@ -29,6 +34,50 @@ const GESTURE_LABELS = {
 const sceneManager = new SceneManager(document.getElementById("three-canvas"));
 const overlay = new HandOverlay(ui.overlayCanvas);
 const audio = new AudioFX();
+const confetti = new ConfettiBurst();
+
+// ── Birthday countdown ─────────────────────────────────────────────────────
+// Computes time remaining until the next 27.5 (or "today" if it's the day).
+// On the actual day the card lights up via the `.today` class.
+function updateBirthdayCountdown() {
+  if (!ui.bdayCard) return;
+  const now  = new Date();
+  const year = now.getFullYear();
+  const sameDay = (a, b) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
+  const thisYear = new Date(year, BIRTHDAY.month - 1, BIRTHDAY.day);
+  if (sameDay(now, thisYear)) {
+    ui.bdayLabel.textContent = "HÔM NAY";
+    ui.bdaySub.textContent   = "Chúc mừng sinh nhật Như 🎂";
+    ui.bdayCard.classList.add("today");
+    return;
+  }
+
+  // Future target = next upcoming May 27 (this year if not passed yet, else next year).
+  const target = now > thisYear
+    ? new Date(year + 1, BIRTHDAY.month - 1, BIRTHDAY.day)
+    : thisYear;
+  const ms      = target - now;
+  const days    = Math.floor(ms / 86_400_000);
+  const hours   = Math.floor((ms % 86_400_000) / 3_600_000);
+  const minutes = Math.floor((ms %  3_600_000) /     60_000);
+
+  let label;
+  if (days >= 1)        label = `${days} NGÀY · ${hours} GIỜ`;
+  else if (hours >= 1)  label = `${hours} GIỜ · ${minutes} PHÚT`;
+  else                  label = `${minutes} PHÚT NỮA`;
+
+  ui.bdayLabel.textContent = label;
+  ui.bdaySub.textContent   = "Sinh nhật Như · 27.5";
+  ui.bdayCard.classList.remove("today");
+}
+
+updateBirthdayCountdown();
+setInterval(updateBirthdayCountdown, 60_000);
+
 // Coordinates the brief fade-out / fade-in animation when the gesture-name
 // text changes. The CSS handles the visuals; JS just toggles a class around
 // the textContent swap so old and new labels don't pop in suddenly.
@@ -151,6 +200,15 @@ ui.startBtn.addEventListener("click", async () => {
     await tracker.start();
     ui.startBtn.classList.add("hidden");
     setTimeout(() => ui.startBtn.remove(), 800);
+
+    // Birthday party arrival: kick off the music-box loop and a celebratory
+    // confetti burst the moment the experience begins. A bonus burst fires
+    // automatically if today happens to be the actual birthday.
+    audio.startMusicBox();
+    confetti.burst({ count: 160, duration: 4500 });
+    if (ui.bdayCard?.classList.contains("today")) {
+      setTimeout(() => confetti.burst({ count: 220, duration: 6000 }), 1200);
+    }
   } catch (err) {
     console.error(err);
     alert("Could not start the camera. Please grant access and reload.");

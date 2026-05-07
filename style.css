@@ -213,6 +213,58 @@ body[data-active="true"] #webcam {
     transition: border-color 0.5s ease;
 }
 
+/* ── Birthday countdown card ───────────────────────────────────────────── */
+#birthday-counter {
+    position: absolute;
+    bottom: 28px;
+    right: 28px;
+    padding: 14px 22px;
+    background: rgba(20, 10, 25, 0.45);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(var(--accent-rgb), 0.18);
+    border-radius: 16px;
+    text-align: right;
+    min-width: 220px;
+    transition: border-color 0.5s ease, box-shadow 0.5s ease, background 0.5s ease;
+}
+
+#birthday-counter .bc-label {
+    font-family: 'Cormorant Garamond', 'Playfair Display', 'Georgia', serif;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    color: var(--accent-soft);
+    line-height: 1.05;
+    transition: color 0.5s ease;
+}
+
+#birthday-counter .bc-sub {
+    font-size: 12px;
+    font-style: italic;
+    opacity: 0.7;
+    letter-spacing: 0.4px;
+    margin-top: 6px;
+}
+
+/* On the actual birthday — 27.5 — the card lights up. */
+#birthday-counter.today {
+    background: rgba(50, 22, 38, 0.6);
+    border-color: rgba(var(--accent-rgb), 0.55);
+    box-shadow: 0 0 36px rgba(var(--accent-rgb), 0.30);
+}
+#birthday-counter.today .bc-label {
+    color: #fff5fa;
+}
+
+/* ── Confetti overlay ──────────────────────────────────────────────────── */
+#confetti-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;        /* above scene + UI cards, below cursor (9999) */
+}
+
 .legend-item {
     display: flex;
     align-items: center;
