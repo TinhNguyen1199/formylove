@@ -4,6 +4,7 @@ import { GestureDetector } from "./gestureDetector.js";
 import { HandOverlay } from "./handOverlay.js";
 import { AudioFX } from "./audio.js";
 import { ConfettiBurst } from "./confetti.js";
+import { PERSONAL } from "./personal.js";
 
 const RING_CIRCUMFERENCE = 106.81; // matches stroke-dasharray in style.css
 const BIRTHDAY = { month: 5, day: 27 };   // Như · 27.5
@@ -20,6 +21,9 @@ const ui = {
   bdayCard:  document.getElementById("birthday-counter"),
   bdayLabel: document.querySelector("#birthday-counter .bc-label"),
   bdaySub:   document.querySelector("#birthday-counter .bc-sub"),
+  poemCard:   document.getElementById("poem-card"),
+  poemHeader: document.querySelector("#poem-card .poem-header"),
+  poemLines:  document.getElementById("poem-lines"),
 };
 
 const GESTURE_LABELS = {
@@ -90,6 +94,61 @@ function setGestureLabel(label) {
   ui.hint.textContent = label.hint;
 }
 
+// ── Poem typewriter ────────────────────────────────────────────────────────
+// Each unique gesture she completes types out the next line of the poem.
+// Order of lines is fixed (it reads as a flowing poem); the gesture identity
+// just decides "do we advance?". Lines that are already typed stay visible.
+const POEM = PERSONAL.poem ?? { header: "", lines: [] };
+const _completedGestures = new Set();
+let _poemTypingPromise = Promise.resolve();   // serialise typing animations
+
+if (ui.poemHeader) ui.poemHeader.textContent = POEM.header || "";
+
+function typewriteInto(el, text, speedMs = 55) {
+  return new Promise((resolve) => {
+    el.classList.add("typing");
+    let i = 0;
+    const tick = () => {
+      if (i >= text.length) {
+        el.classList.remove("typing");
+        resolve();
+        return;
+      }
+      el.textContent = text.slice(0, ++i);
+      setTimeout(tick, speedMs);
+    };
+    tick();
+  });
+}
+
+function maybeAdvancePoem(gesture) {
+  if (!ui.poemCard || !POEM.lines?.length) return;
+  if (gesture === "none") return;
+  if (_completedGestures.has(gesture)) return;
+  if (_completedGestures.size >= POEM.lines.length) return;
+
+  _completedGestures.add(gesture);
+  const lineIndex = _completedGestures.size - 1;
+  const lineText  = POEM.lines[lineIndex];
+
+  if (lineIndex === 0) ui.poemCard.classList.add("visible");
+
+  const lineEl = document.createElement("div");
+  lineEl.className = "poem-line";
+  ui.poemLines.appendChild(lineEl);
+
+  // Serialise typing animations so multiple rapid gesture changes don't
+  // interleave letters across lines.
+  _poemTypingPromise = _poemTypingPromise.then(async () => {
+    await typewriteInto(lineEl, lineText, 55);
+    if (_completedGestures.size === POEM.lines.length) {
+      ui.poemCard.classList.add("complete");
+      // Small celebratory burst to mark "the letter is finished".
+      setTimeout(() => confetti.burst({ count: 80, duration: 3500 }), 500);
+    }
+  });
+}
+
 const detector = new GestureDetector({
   // Confirm a gesture only after 1 seconds of stable hold — the progress ring
   // on the gesture card fills clockwise to show the timer to the user.
@@ -107,6 +166,9 @@ const detector = new GestureDetector({
 
     if (gesture !== "none") audio.playGestureCue(gesture);
     sceneManager.setGesture(gesture);
+
+    // Each unique gesture she lands types out the next line of the poem.
+    maybeAdvancePoem(gesture);
   },
   // Per-frame report of detection state. Drives the scene's confidence fade
   // and the hold-progress ring on the gesture card.
