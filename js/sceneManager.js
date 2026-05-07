@@ -152,8 +152,11 @@ export class SceneManager {
             this.scene.position.y += (0 - this.scene.position.y) * 0.04;
         }
 
-        // Subtle camera breathing.
-        this.camera.position.z = 9 + Math.sin(t * 0.3) * 0.15;
+        // Slow cinematic camera parallax — gentle figure-eight drift around the
+        // subject for a sense of depth without ever distracting from it.
+        this.camera.position.x = Math.sin(t * 0.18) * 0.22;
+        this.camera.position.y = Math.sin(t * 0.13 + 1.2) * 0.14;
+        this.camera.position.z = 9 + Math.sin(t * 0.30) * 0.18;
         this.camera.lookAt(0, 0, 0);
 
         if (this.current) {
@@ -175,7 +178,7 @@ export class SceneManager {
     }
 
     _buildAmbience() {
-        const count = 1200;
+        const count = 1700;
         const positions = new Float32Array(count * 3);
         const colors    = new Float32Array(count * 3);
         const sizes     = new Float32Array(count);

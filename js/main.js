@@ -30,9 +30,9 @@ const sceneManager = new SceneManager(document.getElementById("three-canvas"));
 const overlay = new HandOverlay(ui.overlayCanvas);
 const audio = new AudioFX();
 const detector = new GestureDetector({
-  // Confirm a gesture only after 1.5 seconds of stable hold — the progress ring
+  // Confirm a gesture only after 1 seconds of stable hold — the progress ring
   // on the gesture card fills clockwise to show the timer to the user.
-  holdMs: 1500,
+  holdMs: 1000,
   onChange: (gesture) => {
     const label = GESTURE_LABELS[gesture] ?? GESTURE_LABELS.none;
     ui.name.textContent = label.name;

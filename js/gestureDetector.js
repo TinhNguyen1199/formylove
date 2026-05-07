@@ -43,6 +43,23 @@ function pinchScore(lm) {
     return Math.max(0, Math.min(1, 1 - ratio / 0.35));
 }
 
+// Position-based "thumb is extended away from palm" measure. The IP-joint
+// angle alone is unreliable for the thumb because thumbs curl by tucking
+// against the palm, not by bending sharply at IP — so a wrapped fist still
+// reads as "thumb extended" by angle. Distance from the thumb tip to the
+// pinky MCP, normalised by hand size, is far more discriminating: a tucked
+// or wrapped thumb sits near the pinky base; an out-stretched thumb (open
+// palm) or upraised thumb (thumbs up) reaches well clear of it.
+//
+// Calibrated against typical MediaPipe values: ratio ≈ 0.55 when tucked,
+// ≈ 1.05 when fully extended. Smoothed for live confidence feedback.
+function thumbAbduction(lm) {
+    const handSize = len(sub(lm[0], lm[FINGER.middle.mcp])) || 1;
+    const d = len(sub(lm[FINGER.thumb.tip], lm[FINGER.pinky.mcp])) / handSize;
+    const t = Math.max(0, Math.min(1, (d - 0.55) / 0.50));
+    return t * t * (3 - 2 * t);
+}
+
 // Soft remap so the per-finger score has a sharper transition between
 // "extended" and "curled" without becoming binary. Reads as a confident
 // signal but still ramps smoothly for live confidence feedback.
@@ -68,7 +85,9 @@ function classify(lm) {
         ring:   sharpen(raw.ring),
         pinky:  sharpen(raw.pinky),
     };
-    const pinch = pinchScore(lm);
+    const pinch    = pinchScore(lm);
+    const thumbOut = thumbAbduction(lm);
+    const thumbIn  = 1 - thumbOut;
 
     // Closed-finger score is the inverse of extended.
     const c = {
@@ -84,17 +103,20 @@ function classify(lm) {
     const gmean = (...xs) => Math.pow(xs.reduce((a, b) => a * b, 1), 1 / xs.length);
 
     const scores = {
-        // Fist is penalised when the thumb is sticking out, so a thumbs-up doesn't
-        // get scored as a fist by accident. Tucked-in thumb keeps fist at full strength.
-        fist:         gmean(c.index, c.middle, c.ring, c.pinky) * (0.85 + 0.15 * c.thumb),
-        // Open palm requires all five fingers extended — including the thumb —
-        // so a relaxed four-finger spread doesn't trip the gesture.
-        open_palm:    gmean(ext.thumb, ext.index, ext.middle, ext.ring, ext.pinky),
+        // Fist: four fingers closed; soft penalty when the thumb is sticking
+        // out (so a thumbs-up doesn't double-score as a fist).
+        fist:         gmean(c.index, c.middle, c.ring, c.pinky) * (0.80 + 0.20 * thumbIn),
+        // Open palm: all four fingers extended AND the thumb actually held out
+        // away from the palm. The position-based thumbOut is far more reliable
+        // than the IP-joint angle for "is the thumb spread or tucked".
+        open_palm:    gmean(thumbOut, ext.index, ext.middle, ext.ring, ext.pinky),
         peace:        gmean(ext.index, ext.middle, c.ring, c.pinky),
         // Heart: tight pinch + the other three fingers folded.
         finger_heart: gmean(pinch, pinch, c.middle, c.ring, c.pinky),
-        // Thumbs up: thumb extended, all four other fingers closed.
-        thumbs_up:    gmean(ext.thumb, c.index, c.middle, c.ring, c.pinky),
+        // Thumbs up: thumb straight (IP angle) AND held away from palm
+        // (thumbOut), with all four other fingers closed. The conjunction of
+        // both thumb measures cleanly separates this from "fist with stray thumb".
+        thumbs_up:    gmean(ext.thumb, thumbOut, c.index, c.middle, c.ring, c.pinky),
     };
 
     let best = 'none';
