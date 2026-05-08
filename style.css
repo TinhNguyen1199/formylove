@@ -104,6 +104,78 @@ body[data-active="true"] #webcam {
     display: block;
 }
 
+/* ── Living background ─────────────────────────────────────────────────
+   Ambient scene canvas (sakura / fireflies / aurora / drizzle / star
+   rain). Sits ABOVE three-canvas but the canvas itself is mostly
+   transparent — particles are painted opaque while gaps stay clear, so
+   the cosmic starfield (3D ambience) shows through naturally.
+   No blend mode: it survives the bloom on the gesture object after Begin,
+   instead of getting washed out by the bright halo.
+*/
+#living-bg {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none;
+    opacity: 0.95;
+}
+
+/* Aurora is broad gradient bands rather than discrete particles — drop
+   the alpha so it reads as a soft tint rather than a wall. */
+#living-bg.scene-aurora { opacity: 0.55; }
+
+/* Time-of-day tinting on the living-bg layer. The base scene palette stays
+   the same; we just shift hue + brightness slightly so morning sakura feels
+   different from midnight sakura. Subtle on purpose — the gesture canvas
+   should still drive the eye. */
+body[data-time-slot="dawn"]      #living-bg { filter: hue-rotate(-8deg)  brightness(1.04) saturate(1.05); }
+body[data-time-slot="morning"]   #living-bg { filter: hue-rotate(-4deg)  brightness(1.08) saturate(0.95); }
+body[data-time-slot="noon"]      #living-bg { filter: hue-rotate( 6deg)  brightness(1.12) saturate(1.00); }
+body[data-time-slot="afternoon"] #living-bg { filter: hue-rotate( 2deg)  brightness(1.00) saturate(1.05); }
+body[data-time-slot="evening"]   #living-bg { filter: hue-rotate(12deg)  brightness(0.92) saturate(1.10); }
+body[data-time-slot="night"]     #living-bg { filter: hue-rotate(-12deg) brightness(0.85) saturate(1.05); }
+body[data-time-slot="late"]      #living-bg { filter: hue-rotate(-18deg) brightness(0.78) saturate(1.10); }
+
+/* Hide the living BG while a game is running so the playfield is clean. */
+body.game-active #living-bg {
+    opacity: 0;
+}
+
+/* ── Celestial indicator (sun/moon arc) ─────────────────────────────────
+   Small glyph that follows a half-circle arc across the top of the page,
+   sun by day, moon by night. Position is set inline by JS each minute.
+   --arc-alpha fades it at the horizon so the swap between bodies is gentle.
+*/
+#celestial {
+    position: fixed;
+    top: 30px;
+    left: 50vw;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 4;             /* above three-canvas (1) + living-bg (2), below UI (10) */
+    opacity: var(--arc-alpha, 1);
+    transition: opacity 1.5s ease, top 6s ease, left 6s ease;
+    will-change: top, left, opacity;
+}
+#celestial .celestial-glyph {
+    display: inline-block;
+    font-size: 30px;
+    line-height: 1;
+    filter: drop-shadow(0 0 14px rgba(255, 230, 180, 0.55));
+    animation: celestial-breath 6s ease-in-out infinite;
+}
+#celestial[data-body="moon"] .celestial-glyph {
+    filter: drop-shadow(0 0 14px rgba(200, 210, 255, 0.45));
+}
+@keyframes celestial-breath {
+    0%, 100% { transform: scale(1.00); }
+    50%      { transform: scale(1.06); }
+}
+
+body.game-active #celestial { opacity: 0; transition: opacity 0.35s ease; }
+
 #ui {
     position: fixed;
     inset: 0;
@@ -412,6 +484,205 @@ body[data-active="true"] #webcam {
 }
 
 .welcome-footnote:empty { display: none; }
+
+/* ── Daily message card ─────────────────────────────────────────────────
+   "Lời hôm nay" — nội dung deterministic theo day-of-year. Hiện sau welcome
+   card (~5.5s sau Begin), giữ ~9s rồi tự fade. Vị trí giữa-trên màn hình,
+   tránh đè lên webcam (top-right) và gesture indicator (top-left).
+*/
+#daily-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, calc(-50% + 130px)) scale(0.96);
+    width: min(440px, 86vw);
+    padding: 22px 30px 20px;
+    background: rgba(20, 10, 25, 0.62);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(var(--accent-rgb), 0.28);
+    border-radius: 18px;
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+        opacity 0.7s ease,
+        transform 0.7s cubic-bezier(.4, 0, .2, 1),
+        border-color 0.5s ease,
+        box-shadow 0.5s ease;
+    z-index: 88;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+}
+
+#daily-message.visible {
+    opacity: 1;
+    transform: translate(-50%, calc(-50% + 130px)) scale(1);
+    box-shadow:
+        0 18px 48px rgba(0, 0, 0, 0.45),
+        0 0 36px rgba(var(--accent-rgb), 0.20);
+}
+
+#daily-message .dm-header {
+    font-family: 'Cormorant Garamond', 'Playfair Display', 'Georgia', serif;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    opacity: 0.55;
+    color: var(--accent-soft);
+    margin-bottom: 12px;
+    transition: color 0.5s ease;
+}
+
+#daily-message .dm-body {
+    font-family: 'Cormorant Garamond', 'Playfair Display', 'Georgia', serif;
+    font-style: italic;
+    font-size: 19px;
+    line-height: 1.55;
+    color: var(--text);
+    letter-spacing: 0.4px;
+    margin-bottom: 12px;
+}
+
+#daily-message .dm-footer {
+    font-size: 11px;
+    font-style: italic;
+    opacity: 0.45;
+    letter-spacing: 0.4px;
+}
+
+body.game-active #daily-message {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease;
+}
+
+/* ── Zen mode (idle breathing guide) ────────────────────────────────────
+   After ~30s of no activity, a soft breathing guide fades in centred on
+   screen. The circle scales up on inhale (4s) and back down on exhale (6s),
+   driven by class toggles + a CSS variable for the phase duration.
+*/
+#zen-mode {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 30;
+    transition: opacity 1.6s ease;
+    --zen-phase-ms: 4000ms;
+}
+#zen-mode.active { opacity: 1; }
+
+#zen-mode .zen-circle,
+#zen-mode .zen-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+#zen-mode .zen-circle {
+    background: radial-gradient(
+        circle at center,
+        rgba(var(--accent-rgb), 0.55) 0%,
+        rgba(var(--accent-rgb), 0.18) 60%,
+        rgba(var(--accent-rgb), 0)    100%);
+    box-shadow: 0 0 60px rgba(var(--accent-rgb), 0.35);
+    transition: transform var(--zen-phase-ms) cubic-bezier(.4, 0, .4, 1),
+                opacity   var(--zen-phase-ms) ease;
+    opacity: 0.85;
+}
+#zen-mode .zen-ring {
+    width: 200px;
+    height: 200px;
+    border: 1px solid rgba(var(--accent-rgb), 0.30);
+    box-shadow:
+        0 0 28px rgba(var(--accent-rgb), 0.18),
+        inset 0 0 28px rgba(var(--accent-rgb), 0.10);
+    transition: transform var(--zen-phase-ms) cubic-bezier(.4, 0, .4, 1);
+}
+
+#zen-mode.inhale .zen-circle { transform: translate(-50%, -50%) scale(1.7); opacity: 1.0; }
+#zen-mode.exhale .zen-circle { transform: translate(-50%, -50%) scale(1.0); opacity: 0.7; }
+#zen-mode.inhale .zen-ring   { transform: translate(-50%, -50%) scale(1.35); }
+#zen-mode.exhale .zen-ring   { transform: translate(-50%, -50%) scale(1.00); }
+
+#zen-mode .zen-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Cormorant Garamond', 'Playfair Display', 'Georgia', serif;
+    font-size: 18px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--accent-soft);
+    text-shadow: 0 0 18px rgba(var(--accent-rgb), 0.55);
+    opacity: 0.85;
+    transition: color 0.6s ease;
+}
+
+#zen-mode .zen-message {
+    position: absolute;
+    top: calc(50% + 170px);
+    left: 50%;
+    transform: translate(-50%, 0);
+    font-family: 'Cormorant Garamond', 'Playfair Display', 'Georgia', serif;
+    font-style: italic;
+    font-size: 18px;
+    line-height: 1.5;
+    color: var(--text);
+    text-align: center;
+    width: min(420px, 80vw);
+    opacity: 0.85;
+    transition: opacity 0.4s ease;
+    text-shadow: 0 0 16px rgba(0, 0, 0, 0.45);
+}
+#zen-mode .zen-message.fading { opacity: 0; }
+
+#zen-mode .zen-hint {
+    position: absolute;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11.5px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    opacity: 0.4;
+}
+
+/* While zen is active, gently dim the rest of the UI so the breathing guide
+   is the focal point. Cards stay readable but recede; gesture indicator and
+   legend fade further. */
+body.zen-active #gesture-indicator,
+body.zen-active #legend,
+body.zen-active #streak-chip,
+body.zen-active #poem-card,
+body.zen-active #birthday-counter,
+body.zen-active #advent-toggle,
+body.zen-active #game-toggle,
+body.zen-active #gesture-toggle,
+body.zen-active #daily-message,
+body.zen-active #celestial,
+body.zen-active #webcam,
+body.zen-active #hand-overlay {
+    opacity: 0.18;
+    transition: opacity 1.5s ease;
+}
+body.zen-active #three-canvas {
+    opacity: 0.55;
+    transition: opacity 1.5s ease;
+}
+body.zen-active #living-bg {
+    opacity: 0.45;
+    transition: opacity 1.5s ease;
+}
 
 /* ── Streak chip ───────────────────────────────────────────────────────── */
 /* Sits below the gesture indicator on the left. Shows the current daily

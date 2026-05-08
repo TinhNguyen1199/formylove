@@ -82,6 +82,54 @@ export const PERSONAL = {
     "27.5 — 🎂 Chúc mừng sinh nhật em yêu! Hôm nay em là người hạnh phúc nhất · vì có anh yêu em nhiều như vậy.",
   ],
 
+  // ── Daily messages (one per day, rotates by day-of-year) ────────────────
+  // Một câu mỗi ngày · trang sẽ hiện cùng một câu suốt cả ngày (deterministic
+  // theo day-of-year), nên em mở 5 lần trong ngày vẫn thấy cùng nội dung.
+  // Mảng càng dài thì chu kỳ lặp càng xa — 30 câu = ~1 tháng mới lặp lại.
+  // EDIT FREELY — viết theo giọng riêng của anh-em.
+  dailyMessages: [
+    "Hôm nay là một ngày anh chọn em thêm một lần nữa.",
+    "Em đẹp lắm · ngay cả khi em chưa kịp soi gương.",
+    "Có em ở thế giới này · anh thấy đời nhẹ tênh.",
+    "Anh thương em không cần lý do · chỉ cần là em thôi.",
+    "Hôm nay em làm tốt rồi · cứ thong thả nhé.",
+    "Cứ là chính em · phần còn lại để anh lo.",
+    "Em là điều dịu dàng nhất ngày anh.",
+    "Mỗi sáng mở mắt · điều đầu tiên anh nghĩ là em.",
+    "Anh đợi em · không vội đâu · cứ từ từ.",
+    "Trên đời nhiều người đẹp · nhưng anh chỉ thấy em thôi.",
+    "Em không cần phải hoàn hảo · em đã đủ rồi.",
+    "Hôm nay anh muốn em được chiều một chút.",
+    "Có em thì cái gì cũng thơm cũng đẹp.",
+    "Anh thương em từ tóc xuống đến đầu ngón chân.",
+    "Em mệt thì dựa vào anh nha · anh đứng vững mà.",
+    "Một ngày của em là một ngày anh muốn nâng niu.",
+    "Em là điều ổn định nhất trong cuộc đời nhiều biến động này.",
+    "Hôm nay nhớ uống đủ nước · ăn đủ bữa · cười đủ kiểu nhé.",
+    "Anh không tin định mệnh · đến khi gặp em.",
+    "Em là homepage của anh · mở mắt là vào đầu tiên.",
+    "Có em rồi · anh không cần ai khác nữa.",
+    "Em làm điều bình thường nhất cũng thấy đáng yêu.",
+    "Hôm nay nếu thấy mệt · đọc lại câu này nhé: anh đây.",
+    "Em là lý do anh muốn cố gắng nhiều hơn mỗi ngày.",
+    "Anh muốn nắm tay em đi qua những ngày còn lại của cuộc đời.",
+    "Em là thứ ấm nhất giữa thế giới rất lạnh này.",
+    "Anh thương em hôm qua · thương hôm nay · thương cả ngày mai.",
+    "Em chỉ cần là em · còn anh sẽ là tất cả những gì em cần.",
+    "Có em · bão nào cũng thành mưa nhỏ.",
+    "Anh lưu em bằng tên thật · vì với anh em là duy nhất.",
+    "Em không phải gánh thế giới một mình đâu · anh đỡ một nửa.",
+    "Hôm nay anh chọn em · ngày mai cũng vậy thôi.",
+    "Em xinh nhất khi em là chính mình · không cần diễn.",
+    "Anh muốn được già đi cùng em · từ tốn · không vội.",
+    "Em là phần dịu dàng nhất trong câu chuyện đời anh.",
+    "Hôm nay em được phép lười một chút · anh cho phép.",
+    "Anh thương em theo kiểu rất yên · nhưng rất chắc.",
+    "Em là người đầu tiên anh nhớ · và cũng là người cuối cùng.",
+    "Cảm ơn em vì đã có mặt trên đời · đúng lúc anh cần.",
+    "Em làm mọi thứ bình thường trở thành kỷ niệm.",
+  ],
+
   // ── Time-of-day greetings ────────────────────────────────────────────────
   // Shown as a tertiary line on the countdown card. Updates every minute so
   // the message naturally follows the day. EDIT FREELY.

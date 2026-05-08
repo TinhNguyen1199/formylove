@@ -6,11 +6,15 @@ import { AudioFX } from "./audio.js";
 import { ConfettiBurst } from "./confetti.js";
 import { PERSONAL } from "./personal.js";
 import { recordVisit, welcomeMessage, streakBadge } from "./visitTracker.js";
+import { showDailyMessage } from "./dailyMessage.js";
 import { watchTimeOfDay } from "./timeOfDay.js";
 import { AdventCalendar } from "./advent.js";
 import { CursorMagnet } from "./cursorMagnet.js";
 import { AmbientEvents } from "./ambientEvents.js";
 import { Whispers } from "./whispers.js";
+import { LivingBackground } from "./livingBackground.js";
+import { Celestial } from "./celestial.js";
+import { ZenMode } from "./zenMode.js";
 import { GameManager } from "./games/manager.js";
 import { CatBehaviorState } from "./ai/catBehaviorState.js";
 import { CatAudio }         from "./audio/catAudio.js";
@@ -160,14 +164,23 @@ watchTimeOfDay((slot) => {
 // Cursor magnet → foreground sparkle dust + click-spawned hearts.
 // Ambient events → shooting stars / balloons / paper letters every 18–50s.
 // Whispers → random love phrase fades in every 30–60s.
+// Living BG → behind the 3D scene; picks one of several scenes per visit
+//   (sakura / fireflies / star rain / aurora / drizzle) weighted by season
+//   + time of day, so the page never looks identical twice.
 // Bound to vars so the GameManager can pause them while a game is running.
-const cursorMagnet  = new CursorMagnet({ count: 42 });
-const ambientEvents = new AmbientEvents({ minDelay: 18_000, maxDelay: 50_000 });
-const whispers      = new Whispers({
+const cursorMagnet     = new CursorMagnet({ count: 42 });
+const ambientEvents    = new AmbientEvents({ minDelay: 18_000, maxDelay: 50_000 });
+const whispers         = new Whispers({
   phrases: PERSONAL.whispers ?? [],
   minDelay: 30_000,
   maxDelay: 60_000,
 });
+const livingBackground = new LivingBackground();
+const celestial        = new Celestial();
+// Zen mode is created paused — armed only after Begin so a hover on the
+// password gate can't trigger the breathing guide over the input.
+const zenMode = new ZenMode({ idleMs: 30_000, inhaleMs: 4000, exhaleMs: 6000 });
+zenMode.pause();
 
 // ── Advent calendar (1.5 → 27.5) ───────────────────────────────────────────
 // Toggle button (gift icon) opens a modal grid laid out as a real May 2026
@@ -222,7 +235,19 @@ function showWelcome() {
   setTimeout(() => ui.welcomeCard.classList.remove("visible"), 5000);
 
   updateStreakChip(visit);
+
+  // Lời nhắn của ngày — appears after the welcome card fades (5.5s delay),
+  // stays for ~9s, then quietly retires. Stored deterministically by day-of-year
+  // so reopening the page later in the day shows the same line.
+  _dailyMsgHandle = showDailyMessage(PERSONAL.dailyMessages, {
+    delayMs: 5500,
+    holdMs:  9000,
+  });
 }
+
+// Held so the first gesture lock-in can dismiss the daily card cleanly,
+// rather than letting it linger over an active scene.
+let _dailyMsgHandle = null;
 
 // Coordinates the brief fade-out / fade-in animation when the gesture-name
 // text changes. The CSS handles the visuals; JS just toggles a class around
@@ -353,6 +378,17 @@ const detector = new GestureDetector({
     if (gesture !== "none") audio.playGestureCue(gesture);
     sceneManager.setGesture(gesture);
 
+    // First gesture lock-in dismisses the daily-message card so it doesn't
+    // compete with the active scene. No-op if already faded.
+    if (gesture !== "none" && _dailyMsgHandle) {
+      _dailyMsgHandle.dismiss();
+      _dailyMsgHandle = null;
+    }
+
+    // Treat any actual gesture as activity for zen-idle purposes — exits
+    // zen mode if it was active, and re-arms the idle countdown either way.
+    zenMode.noteGesture(gesture);
+
     // Each unique gesture she lands types out the next line of the poem.
     maybeAdvancePoem(gesture);
   },
@@ -404,15 +440,12 @@ function applyGestureTrackingState(paused) {
   // so also park the ambient background layers and clear any in-flight
   // animations (sparkles, balloons, shooting stars, paper planes, whispers,
   // confetti, click-hearts). Resume re-arms scheduling for the next round.
+  // Background scene + ambient layers stay running regardless of gesture
+  // tracking — the toggle is meant to pause heavy MediaPipe inference, not
+  // to flatten the page. Confetti is the only thing we eagerly clear so a
+  // mid-burst pause doesn't leave 200 paper flakes frozen mid-air.
   if (paused) {
-    cursorMagnet.pause();   cursorMagnet.clear();
-    ambientEvents.pause();  ambientEvents.clear();
-    whispers.pause();       whispers.clear();
     confetti.clear();
-  } else {
-    cursorMagnet.resume();
-    ambientEvents.resume();
-    whispers.resume();
   }
 
   // Re-arm the warmup gate when re-enabling so a hand that happens to be in
@@ -453,7 +486,7 @@ if (ui.gameToggle && ui.gameMenu && ui.gameContainer) {
     statsEl:     ui.gameStats,
     stageEl:     ui.gameStage,
     photos:      PERSONAL.photos ?? [],
-    pausables:   [sceneManager, cursorMagnet, ambientEvents, whispers, trackerPausable, catInteraction, cat],
+    pausables:   [sceneManager, cursorMagnet, ambientEvents, whispers, livingBackground, celestial, zenMode, trackerPausable, catInteraction, cat],
   });
 }
 
@@ -555,6 +588,9 @@ async function beginExperience() {
 
     // Greet her based on how many times she's opened this gift.
     showWelcome();
+
+    // Arm zen mode now that the gate is down. Idle countdown starts here.
+    zenMode.resume();
   } catch (err) {
     console.error(err);
     alert("Could not start the camera. Please grant access and reload.");
