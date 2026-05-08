@@ -53,6 +53,7 @@ const ui = {
   welcomeTitle:   document.querySelector("#welcome-card .welcome-title"),
   welcomeBody:    document.querySelector("#welcome-card .welcome-body"),
   welcomeFoot:    document.querySelector("#welcome-card .welcome-footnote"),
+  gestureToggle: document.getElementById("gesture-toggle"),
   gameToggle:    document.getElementById("game-toggle"),
   gameMenu:      document.getElementById("game-menu"),
   gameMenuClose: document.getElementById("game-menu-close"),
@@ -66,7 +67,6 @@ const GESTURE_LABELS = {
   fist: { name: "Fist", hint: "A whole world in your hand" },
   open_palm: { name: "Open Palm", hint: "Sakura wind · let it bloom" },
   peace: { name: "Peace", hint: "Words for you" },
-  finger_heart: { name: "Finger Heart", hint: "Made with love · Như 27.5" },
   thumbs_up: { name: "Like", hint: "A yes from the heart · Như 27.5" },
   none: { name: "—", hint: "Show your hand to the camera" },
 };
@@ -260,8 +260,14 @@ function typewriteInto(el, text, speedMs = 55) {
   });
 }
 
+function isBirthdayToday() {
+  const now = new Date();
+  return now.getMonth() === BIRTHDAY.month - 1 && now.getDate() === BIRTHDAY.day;
+}
+
 function maybeAdvancePoem(gesture) {
   if (!ui.poemCard || !POEM.lines?.length) return;
+  if (!isBirthdayToday()) return;
   if (gesture === "none") return;
   if (_completedGestures.has(gesture)) return;
   if (_completedGestures.size >= POEM.lines.length) return;
@@ -291,11 +297,46 @@ function maybeAdvancePoem(gesture) {
   });
 }
 
+// ── Warmup gate + open_palm cooldown ───────────────────────────────────────
+// Two issues this guards against:
+//   1. The user's resting hand pose at the moment of clicking "Begin" often
+//      reads as open_palm, which would auto-fire that scene before they're
+//      ready. We hold the gate closed for 2s after Begin so any initial pose
+//      can't lock in.
+//   2. open_palm's LifeOrb-sakura is the heaviest scene in the project and
+//      spamming it lags the experience. After it fires once, suppress repeat
+//      triggers until BOTH 20s have passed AND the user has performed a
+//      different gesture in between.
+let _gateOpenAt = Infinity;
+let _lastOpenPalmAt = -Infinity;
+let _didOtherGestureSinceOpenPalm = true;
+const OPEN_PALM_COOLDOWN_MS = 20_000;
+
+function gestureFilter(raw) {
+  if (performance.now() < _gateOpenAt) return "none";
+  if (raw === "open_palm") {
+    const now = performance.now();
+    const cooldownActive = now - _lastOpenPalmAt < OPEN_PALM_COOLDOWN_MS;
+    if (cooldownActive || !_didOtherGestureSinceOpenPalm) return "none";
+  }
+  return raw;
+}
+
 const detector = new GestureDetector({
   // Confirm a gesture only after 1 seconds of stable hold — the progress ring
   // on the gesture card fills clockwise to show the timer to the user.
   holdMs: 1000,
+  gestureFilter,
   onChange: (gesture) => {
+    // Track open_palm firings for the cooldown gate. Any other non-'none'
+    // gesture firing in between satisfies the "different gesture" condition.
+    if (gesture === "open_palm") {
+      _lastOpenPalmAt = performance.now();
+      _didOtherGestureSinceOpenPalm = false;
+    } else if (gesture !== "none") {
+      _didOtherGestureSinceOpenPalm = true;
+    }
+
     const label = GESTURE_LABELS[gesture] ?? GESTURE_LABELS.none;
     setGestureLabel(label);
     ui.indicator.classList.toggle("active", gesture !== "none");
@@ -334,6 +375,49 @@ const tracker = new HandTracker({
   },
 });
 
+// ── Gesture-tracking on/off toggle ─────────────────────────────────────────
+// MediaPipe inference is by far the heaviest per-frame work in the experience.
+// This button lets the user pause it for a quieter / lower-power session and
+// resume when they want gestures back. The choice persists across reloads.
+const GESTURE_PAUSED_KEY = "gesture_tracking_paused";
+let _userPausedTracker = false;
+let _trackerStarted = false;
+
+function applyGestureTrackingState(paused) {
+  _userPausedTracker = paused;
+  if (_trackerStarted) {
+    if (paused) tracker.pause();
+    else        tracker.resume();
+  }
+  if (ui.gestureToggle) {
+    ui.gestureToggle.setAttribute("aria-pressed", String(paused));
+    ui.gestureToggle.title = paused
+      ? "Bật lại nhận diện cử chỉ"
+      : "Tạm tắt nhận diện cử chỉ (giảm lag)";
+  }
+  document.body.classList.toggle("gesture-paused", paused);
+  // Re-arm the warmup gate when re-enabling so a hand that happens to be in
+  // frame can't auto-fire a gesture (same logic as just-clicked-Begin).
+  if (!paused && _trackerStarted) {
+    _gateOpenAt = performance.now() + 2000;
+  }
+}
+
+if (ui.gestureToggle) {
+  ui.gestureToggle.addEventListener("click", () => {
+    applyGestureTrackingState(!_userPausedTracker);
+    localStorage.setItem(GESTURE_PAUSED_KEY, _userPausedTracker ? "1" : "0");
+  });
+}
+
+// GameManager calls tracker.pause()/resume() around a running game. We don't
+// want the resume on game-exit to clobber a manual user-pause, so wrap the
+// tracker in a pausable that respects the user's choice.
+const trackerPausable = {
+  pause:  () => tracker.pause(),
+  resume: () => { if (!_userPausedTracker) tracker.resume(); },
+};
+
 // ── Games (Bubble Pop / Heart Catcher / Memory Match) ──────────────────────
 // 🎮 toggle opens a menu; selecting a game hides the gesture UI via
 // body.game-active and runs the game in its own container until Esc / ✕.
@@ -350,7 +434,7 @@ if (ui.gameToggle && ui.gameMenu && ui.gameContainer) {
     statsEl:     ui.gameStats,
     stageEl:     ui.gameStage,
     photos:      PERSONAL.photos ?? [],
-    pausables:   [sceneManager, cursorMagnet, ambientEvents, whispers, tracker, catInteraction, cat],
+    pausables:   [sceneManager, cursorMagnet, ambientEvents, whispers, trackerPausable, catInteraction, cat],
   });
 }
 
@@ -420,11 +504,20 @@ tracker
 
 ui.startBtn.addEventListener("click", async () => {
   try {
+    // Open the warmup gate 2s after the click — see gestureFilter above.
+    // Long enough that an initial open_palm-shaped hand pose can't auto-fire
+    // through the 1s hold timer.
+    _gateOpenAt = performance.now() + 2000;
     await audio.unlock();
     // Cat audio shares the same WebAudio graph so there's only one context,
     // but routes through its own gain bus (separate volume from music box).
     await catAudio.unlock({ ctx: audio.ctx, master: audio.master });
     await tracker.start();
+    _trackerStarted = true;
+    // Restore the user's persisted gesture-tracking preference. If they
+    // previously turned it off, MediaPipe inference stays paused on this
+    // session as well.
+    applyGestureTrackingState(localStorage.getItem(GESTURE_PAUSED_KEY) === "1");
     ui.startBtn.classList.add("hidden");
     setTimeout(() => ui.startBtn.remove(), 800);
 

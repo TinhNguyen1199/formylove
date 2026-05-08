@@ -11,13 +11,11 @@ import { FingerHeart }    from './objects/fingerHeart.js';
 
 // Both fist and open_palm map to LifeOrb — same particle system, two initial
 // modes. Fist→open_palm uses the in-place "Life Release" morph (see setGesture).
-// thumbs_up shares FingerHeart so the "Like" gesture lands on the same heart
-// of light as the finger-heart pose.
+// thumbs_up uses FingerHeart so the "Like" gesture lands on a heart of light.
 const FACTORIES = {
     fist:         () => new LifeOrb('earth'),
     open_palm:    () => new LifeOrb('sakura'),
     peace:        () => new LoveText(),
-    finger_heart: () => new FingerHeart(),
     thumbs_up:    () => new FingerHeart(),
 };
 
@@ -28,7 +26,6 @@ const CAT_TINTS = {
     fist:         0x6fbf9d,   // emerald
     open_palm:    0xd8909f,   // sakura rose
     peace:        0xb09ad0,   // lavender
-    finger_heart: 0xff6fa3,   // brand rose
     thumbs_up:    0xff6fa3,
     none:         null,
 };

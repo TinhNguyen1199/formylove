@@ -31,8 +31,7 @@ body[data-gesture="peace"] {
     --accent-rgb: 176, 154, 208;
 }
 
-/* Finger heart + Like → keep the brand rose. */
-body[data-gesture="finger_heart"],
+/* Like → keep the brand rose. */
 body[data-gesture="thumbs_up"] {
     --accent: #ff6fa3;
     --accent-soft: #ffb3c8;
@@ -49,6 +48,11 @@ html, body {
     color: var(--text);
     font-family: 'Segoe UI', 'Helvetica Neue', system-ui, sans-serif;
     cursor: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
 }
 
 /* Shared soft mask so both the webcam frame and the hand-skeleton overlay
@@ -951,6 +955,60 @@ body[data-active="true"] #webcam {
     border-color: rgba(var(--accent-rgb), 0.55);
 }
 
+/* ── Gesture tracking on/off toggle ───────────────────────────────────── */
+#gesture-toggle {
+    position: absolute;
+    top: 280px;
+    right: 30px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 1px solid rgba(var(--accent-rgb), 0.30);
+    background: rgba(20, 10, 25, 0.55);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    color: inherit;
+    font-size: 22px;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: transform 0.35s ease, box-shadow 0.5s ease,
+        border-color 0.5s ease, opacity 0.35s ease;
+    z-index: 12;
+}
+#gesture-toggle:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 28px rgba(var(--accent-rgb), 0.30);
+    border-color: rgba(var(--accent-rgb), 0.55);
+}
+/* When tracking is paused: dim the icon and slash through it. */
+#gesture-toggle[aria-pressed="true"] {
+    opacity: 0.55;
+    border-color: rgba(255, 255, 255, 0.18);
+    box-shadow: none;
+}
+#gesture-toggle[aria-pressed="true"] .gt-icon {
+    position: relative;
+    filter: grayscale(0.6);
+}
+#gesture-toggle[aria-pressed="true"] .gt-icon::after {
+    content: "";
+    position: absolute;
+    left: -4px;
+    right: -4px;
+    top: 50%;
+    height: 2px;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 120, 150, 0.85) 20%,
+        rgba(255, 120, 150, 0.85) 80%,
+        transparent 100%
+    );
+    transform: translateY(-50%) rotate(-25deg);
+    border-radius: 2px;
+}
+
 /* ── Game menu modal (3 game cards) ────────────────────────────────────── */
 #game-menu {
     position: fixed;
@@ -1207,6 +1265,7 @@ body.game-active #streak-chip,
 body.game-active #birthday-counter,
 body.game-active #advent-toggle,
 body.game-active #game-toggle,
+body.game-active #gesture-toggle,
 body.game-active #webcam,
 body.game-active #hand-overlay {
     opacity: 0;

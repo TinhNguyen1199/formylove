@@ -111,8 +111,6 @@ function classify(lm) {
         // than the IP-joint angle for "is the thumb spread or tucked".
         open_palm:    gmean(thumbOut, ext.index, ext.middle, ext.ring, ext.pinky),
         peace:        gmean(ext.index, ext.middle, c.ring, c.pinky),
-        // Heart: tight pinch + the other three fingers folded.
-        finger_heart: gmean(pinch, pinch, c.middle, c.ring, c.pinky),
         // Thumbs up: thumb straight (IP angle) AND held away from palm
         // (thumbOut), with all four other fingers closed. The conjunction of
         // both thumb measures cleanly separates this from "fist with stray thumb".
@@ -132,10 +130,15 @@ function classify(lm) {
 }
 
 export class GestureDetector {
-    constructor({ holdMs = 200, onChange, onTick } = {}) {
+    constructor({ holdMs = 200, onChange, onTick, gestureFilter } = {}) {
         this.holdMs = holdMs;
         this.onChange = onChange;
         this.onTick = onTick;
+        // Optional pre-state-machine hook: receives the raw classified gesture
+        // and returns the gesture the debounce machine should see. Returning
+        // 'none' suppresses a gesture (used for warmup gating + per-gesture
+        // cooldowns). Runs every frame, before candidate/current update.
+        this.gestureFilter = gestureFilter;
         this.current = 'none';
         this.candidate = 'none';
         this.candidateSince = 0;
@@ -144,6 +147,10 @@ export class GestureDetector {
     feed(landmarks) {
         const result = classify(landmarks);
         const now = performance.now();
+
+        if (this.gestureFilter) {
+            result.gesture = this.gestureFilter(result.gesture);
+        }
 
         // Debounce machinery FIRST so holdProgress reads up-to-date state.
         if (result.gesture !== this.candidate) {

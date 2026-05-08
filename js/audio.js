@@ -36,7 +36,6 @@ export class AudioFX {
             case 'fist':         this._playEarth(); break;
             case 'open_palm':    this._playShatter(); break;
             case 'peace':        this._playChime([523.25, 659.25, 783.99]); break;
-            case 'finger_heart': this._playHeart(); break;
             case 'thumbs_up':    this._playReveal(); break;
         }
     }
