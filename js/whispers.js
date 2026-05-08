@@ -25,6 +25,10 @@ export class Whispers {
         }
     }
 
+    clear() {
+        document.querySelectorAll('.whisper').forEach((el) => el.remove());
+    }
+
     resume() {
         if (!this._paused) return;
         this._paused = false;

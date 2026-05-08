@@ -39,6 +39,12 @@ export class AmbientEvents {
     }
   }
 
+  clear() {
+    document
+      .querySelectorAll(".shooting-star, .ambient-balloon, .ambient-plane")
+      .forEach((el) => el.remove());
+  }
+
   resume() {
     if (!this._paused) return;
     this._paused = false;

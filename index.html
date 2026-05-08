@@ -163,7 +163,22 @@
         <div class="welcome-footnote"></div>
       </div>
 
-      <button id="start-btn">Begin</button>
+      <div id="start-gate">
+        <input
+          id="start-password"
+          type="password"
+          inputmode="numeric"
+          maxlength="8"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          placeholder="••••••••"
+          title="nhập ngày sinh em vào"
+          aria-label="Mật khẩu"
+        />
+        <button id="start-btn" type="button">Begin</button>
+        <div id="start-error" aria-live="polite"></div>
+      </div>
     </div>
 
     <!-- MediaPipe Hands (stable, browser-friendly) -->

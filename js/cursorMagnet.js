@@ -64,6 +64,11 @@ export class CursorMagnet {
         this.ctx?.clearRect(0, 0, window.innerWidth, window.innerHeight);
     }
 
+    clear() {
+        this.ctx?.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        document.querySelectorAll('.click-heart').forEach((el) => el.remove());
+    }
+
     resume() {
         if (!this._paused) return;
         this._paused = false;

@@ -23,6 +23,9 @@ const BIRTHDAY = { month: 5, day: 27 };   // Như · 27.5
 const ui = {
   loader: document.getElementById("loader"),
   startBtn: document.getElementById("start-btn"),
+  startGate: document.getElementById("start-gate"),
+  startPassword: document.getElementById("start-password"),
+  startError: document.getElementById("start-error"),
   indicator: document.getElementById("gesture-indicator"),
   name: document.getElementById("gesture-name"),
   hint: document.getElementById("gesture-hint"),
@@ -396,6 +399,22 @@ function applyGestureTrackingState(paused) {
       : "Tạm tắt nhận diện cử chỉ (giảm lag)";
   }
   document.body.classList.toggle("gesture-paused", paused);
+
+  // Pausing tracking is the user asking for a quieter / less-laggy session,
+  // so also park the ambient background layers and clear any in-flight
+  // animations (sparkles, balloons, shooting stars, paper planes, whispers,
+  // confetti, click-hearts). Resume re-arms scheduling for the next round.
+  if (paused) {
+    cursorMagnet.pause();   cursorMagnet.clear();
+    ambientEvents.pause();  ambientEvents.clear();
+    whispers.pause();       whispers.clear();
+    confetti.clear();
+  } else {
+    cursorMagnet.resume();
+    ambientEvents.resume();
+    whispers.resume();
+  }
+
   // Re-arm the warmup gate when re-enabling so a hand that happens to be in
   // frame can't auto-fire a gesture (same logic as just-clicked-Begin).
   if (!paused && _trackerStarted) {
@@ -502,7 +521,11 @@ tracker
       "Could not load. Refresh to retry.";
   });
 
-ui.startBtn.addEventListener("click", async () => {
+// Password gate — birthday DDMMYYYY. The hint ("nhập ngày sinh em vào")
+// is shown via the input's title tooltip on hover.
+const START_PASSWORD = "27052002";
+
+async function beginExperience() {
   try {
     // Open the warmup gate 2s after the click — see gestureFilter above.
     // Long enough that an initial open_palm-shaped hand pose can't auto-fire
@@ -518,8 +541,8 @@ ui.startBtn.addEventListener("click", async () => {
     // previously turned it off, MediaPipe inference stays paused on this
     // session as well.
     applyGestureTrackingState(localStorage.getItem(GESTURE_PAUSED_KEY) === "1");
-    ui.startBtn.classList.add("hidden");
-    setTimeout(() => ui.startBtn.remove(), 800);
+    ui.startGate.classList.add("hidden");
+    setTimeout(() => ui.startGate.remove(), 800);
 
     // Birthday party arrival: kick off the music-box loop and a celebratory
     // confetti burst the moment the experience begins. A bonus burst fires
@@ -535,5 +558,44 @@ ui.startBtn.addEventListener("click", async () => {
   } catch (err) {
     console.error(err);
     alert("Could not start the camera. Please grant access and reload.");
+  }
+}
+
+function rejectPassword(message) {
+  if (!ui.startPassword) return;
+  ui.startPassword.classList.remove("invalid");
+  // Force reflow so the animation can replay if the user retries quickly.
+  void ui.startPassword.offsetWidth;
+  ui.startPassword.classList.add("invalid");
+  ui.startPassword.select();
+  if (ui.startError) {
+    ui.startError.textContent = message;
+    ui.startError.classList.add("visible");
+  }
+}
+
+function tryStart() {
+  const value = (ui.startPassword?.value ?? "").trim();
+  if (value !== START_PASSWORD) {
+    rejectPassword("Sai rồi · gợi ý: ngày sinh của em");
+    return;
+  }
+  ui.startError?.classList.remove("visible");
+  beginExperience();
+}
+
+ui.startBtn.addEventListener("click", tryStart);
+
+ui.startPassword?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    tryStart();
+  }
+});
+
+ui.startPassword?.addEventListener("input", () => {
+  ui.startPassword.classList.remove("invalid");
+  if (ui.startError?.classList.contains("visible")) {
+    ui.startError.classList.remove("visible");
   }
 });

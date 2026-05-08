@@ -37,6 +37,13 @@ export class ConfettiBurst {
         this._dpr = dpr;
     }
 
+    clear() {
+        this.particles.length = 0;
+        const W = window.innerWidth;
+        const H = window.innerHeight;
+        this.ctx?.clearRect(0, 0, W, H);
+    }
+
     burst({ count = 140, duration = 4500 } = {}) {
         const W = window.innerWidth;
         const H = window.innerHeight;
