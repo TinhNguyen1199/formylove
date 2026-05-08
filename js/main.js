@@ -23,6 +23,7 @@ import { CatInteraction }   from "./interactive/catInteraction.js";
 import { SpaceCat }         from "./objects/spaceCat.js";
 import { PhotoManager }     from "./photoManager.js";
 import { CapsuleManager }   from "./capsuleManager.js";
+import { TodoManager }      from "./todoManager.js";
 
 const RING_CIRCUMFERENCE = 106.81; // matches stroke-dasharray in style.css
 const BIRTHDAY = { month: 5, day: 27 };   // Như · 27.5
@@ -99,6 +100,15 @@ const ui = {
   capsuleRevealTitle:  document.getElementById("capsule-reveal-title"),
   capsuleRevealMeta:   document.querySelector("#capsule-reveal .capsule-reveal-meta"),
   capsuleRevealBody:   document.querySelector("#capsule-reveal .capsule-reveal-body"),
+
+  // Daily todo
+  todoToggle:  document.getElementById("todo-toggle"),
+  todoOverlay: document.getElementById("todo-overlay"),
+  todoList:    document.getElementById("todo-list"),
+  todoInput:   document.getElementById("todo-input"),
+  todoAddBtn:  document.getElementById("todo-add-btn"),
+  todoClose:   document.getElementById("todo-close"),
+  todoCount:   document.getElementById("todo-count"),
 };
 
 const GESTURE_LABELS = {
@@ -562,6 +572,32 @@ if (ui.photoToggle && ui.photoOverlay) {
     dropzone:  ui.photoDropzone,
     closeBtn:  ui.photoClose,
     countEl:   ui.photoCount,
+  });
+}
+
+// Daily todo — IndexedDB-backed list, one set of items per local day. Tick →
+// soft confetti + cat XP; emptying the day's list → cat banner + celebration.
+if (ui.todoToggle && ui.todoOverlay) {
+  new TodoManager({
+    toggle:   ui.todoToggle,
+    overlay:  ui.todoOverlay,
+    list:     ui.todoList,
+    input:    ui.todoInput,
+    addBtn:   ui.todoAddBtn,
+    closeBtn: ui.todoClose,
+    countEl:  ui.todoCount,
+    onCompleteOne: () => {
+      // Cánh hoa rơi — small confetti pop + small XP nudge for the cat.
+      confetti.burst({ count: 8, duration: 1800 });
+      catEvolution.noteTodo();
+    },
+    onCompleteAll: (line) => {
+      // Final celebration of the day: cat banner + jump + bigger burst.
+      cat.showLevelUp(line);
+      catInteraction.triggerCelebration();
+      confetti.burst({ count: 80, duration: 4000 });
+      catAudio?.chime();
+    },
   });
 }
 

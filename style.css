@@ -668,6 +668,7 @@ body.zen-active #birthday-counter,
 body.zen-active #advent-toggle,
 body.zen-active #game-toggle,
 body.zen-active #gesture-toggle,
+body.zen-active #todo-toggle,
 body.zen-active #daily-message,
 body.zen-active #celestial,
 body.zen-active #webcam,
@@ -1280,9 +1281,10 @@ body.zen-active #living-bg {
     border-radius: 2px;
 }
 
-/* ── Photo + Capsule toggle buttons (vertical stack on right) ─────────── */
+/* ── Photo + Capsule + Todo toggle buttons (vertical stack on right) ──── */
 #photo-toggle,
-#capsule-toggle {
+#capsule-toggle,
+#todo-toggle {
     position: absolute;
     right: 30px;
     width: 50px;
@@ -1302,15 +1304,18 @@ body.zen-active #living-bg {
 }
 #photo-toggle  { top: 345px; }
 #capsule-toggle{ top: 410px; }
+#todo-toggle   { top: 475px; }
 #photo-toggle:hover,
-#capsule-toggle:hover {
+#capsule-toggle:hover,
+#todo-toggle:hover {
     transform: scale(1.1);
     box-shadow: 0 0 28px rgba(var(--accent-rgb), 0.30);
     border-color: rgba(var(--accent-rgb), 0.55);
 }
 
 .photo-count,
-.capsule-count {
+.capsule-count,
+.todo-count {
     position: absolute;
     top: -4px;
     right: -4px;
@@ -1328,13 +1333,15 @@ body.zen-active #living-bg {
     pointer-events: none;
 }
 .photo-count:empty,
-.capsule-count:empty { display: none; }
+.capsule-count:empty,
+.todo-count:empty { display: none; }
 
 /* ── Photo manager modal ──────────────────────────────────────────────── */
 #photo-overlay,
 #capsule-overlay,
 #capsule-write,
-#capsule-reveal {
+#capsule-reveal,
+#todo-overlay {
     position: fixed;
     inset: 0;
     background: rgba(8, 6, 15, 0.78);
@@ -1350,7 +1357,8 @@ body.zen-active #living-bg {
 #photo-overlay.open,
 #capsule-overlay.open,
 #capsule-write.open,
-#capsule-reveal.open {
+#capsule-reveal.open,
+#todo-overlay.open {
     opacity: 1;
     pointer-events: auto;
 }
@@ -1358,7 +1366,8 @@ body.zen-active #living-bg {
 .photo-modal,
 .capsule-modal,
 .capsule-write-modal,
-.capsule-reveal-modal {
+.capsule-reveal-modal,
+.todo-modal {
     width: min(720px, 92vw);
     max-height: 90vh;
     overflow-y: auto;
@@ -1373,17 +1382,20 @@ body.zen-active #living-bg {
 #photo-overlay.open .photo-modal,
 #capsule-overlay.open .capsule-modal,
 #capsule-write.open .capsule-write-modal,
-#capsule-reveal.open .capsule-reveal-modal { transform: scale(1); }
+#capsule-reveal.open .capsule-reveal-modal,
+#todo-overlay.open .todo-modal { transform: scale(1); }
 
 .photo-header,
-.capsule-header {
+.capsule-header,
+.todo-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 18px;
 }
 .photo-header h2,
-.capsule-header h2 {
+.capsule-header h2,
+.todo-header h2 {
     font-family: 'Cormorant Garamond', 'Playfair Display', 'Georgia', serif;
     font-weight: 600;
     font-size: 22px;
@@ -1393,7 +1405,8 @@ body.zen-active #living-bg {
 #photo-close,
 #capsule-close,
 #capsule-write-close,
-#capsule-reveal-close {
+#capsule-reveal-close,
+#todo-close {
     width: 36px;
     height: 36px;
     border-radius: 50%;
@@ -1408,7 +1421,8 @@ body.zen-active #living-bg {
 #photo-close:hover,
 #capsule-close:hover,
 #capsule-write-close:hover,
-#capsule-reveal-close:hover {
+#capsule-reveal-close:hover,
+#todo-close:hover {
     border-color: rgba(var(--accent-rgb), 0.6);
     background: rgba(var(--accent-rgb), 0.10);
 }
@@ -1661,9 +1675,158 @@ body.zen-active #living-bg {
     border-bottom: 1px solid rgba(var(--accent-rgb), 0.18);
 }
 
+/* ── Daily todo overlay ───────────────────────────────────────────────── */
+.todo-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+    min-height: 60px;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+.todo-empty {
+    text-align: center;
+    padding: 24px 8px;
+    font-size: 13px;
+    font-style: italic;
+    opacity: 0.55;
+}
+.todo-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(var(--accent-rgb), 0.20);
+    background: rgba(255, 255, 255, 0.03);
+    transition: background 0.25s ease, border-color 0.25s ease, opacity 0.35s ease;
+}
+.todo-item:hover { background: rgba(var(--accent-rgb), 0.06); }
+.todo-item.done {
+    opacity: 0.55;
+    border-color: rgba(var(--accent-rgb), 0.10);
+}
+.todo-check {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(var(--accent-rgb), 0.55);
+    background: transparent;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+    position: relative;
+}
+.todo-check:hover {
+    border-color: rgba(var(--accent-rgb), 0.95);
+    transform: scale(1.08);
+}
+.todo-item.done .todo-check {
+    background: rgba(var(--accent-rgb), 0.85);
+    border-color: rgba(var(--accent-rgb), 0.85);
+}
+.todo-item.done .todo-check::after {
+    content: "";
+    position: absolute;
+    width: 5px;
+    height: 10px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: translate(0, -1px) rotate(45deg);
+}
+.todo-text {
+    flex: 1;
+    min-width: 0;
+    font-family: 'Cormorant Garamond', 'Georgia', serif;
+    font-size: 16px;
+    line-height: 1.4;
+    color: var(--text);
+    word-break: break-word;
+    transition: text-decoration-color 0.3s ease;
+}
+.todo-item.done .todo-text {
+    text-decoration: line-through;
+    text-decoration-thickness: 1.5px;
+    text-decoration-color: rgba(var(--accent-rgb), 0.55);
+    color: rgba(var(--text-rgb, 240, 230, 240), 0.65);
+}
+.todo-del {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 0;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+    line-height: 22px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.25s ease, background 0.25s ease, color 0.25s ease;
+}
+.todo-item:hover .todo-del { opacity: 1; }
+.todo-del:hover { background: rgba(220, 60, 80, 0.7); color: #fff; }
+
+.todo-add {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.todo-input {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(var(--accent-rgb), 0.25);
+    border-radius: 999px;
+    color: var(--text);
+    padding: 12px 18px;
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.todo-input:focus {
+    border-color: rgba(var(--accent-rgb), 0.7);
+    box-shadow: 0 0 18px rgba(var(--accent-rgb), 0.18);
+}
+.todo-add-btn {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(var(--accent-rgb), 0.55);
+    background: rgba(var(--accent-rgb), 0.14);
+    color: var(--accent-soft);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.25s ease, transform 0.15s ease;
+}
+.todo-add-btn:hover {
+    background: rgba(var(--accent-rgb), 0.28);
+    transform: scale(1.06);
+}
+.todo-hint {
+    margin-top: 12px;
+    font-size: 11.5px;
+    font-style: italic;
+    text-align: center;
+    opacity: 0.55;
+    letter-spacing: 0.3px;
+}
+
+/* Soft pulse on the toggle when there are pending todos. */
+#todo-toggle.has-pending {
+    border-color: rgba(var(--accent-rgb), 0.55);
+    box-shadow: 0 0 22px rgba(var(--accent-rgb), 0.25);
+}
+
 /* Hide new buttons while a game is running, like the others. */
 body.game-active #photo-toggle,
-body.game-active #capsule-toggle {
+body.game-active #capsule-toggle,
+body.game-active #todo-toggle {
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.35s ease;
@@ -1923,7 +2086,8 @@ body.game-active #capsule-toggle {
 body.gate-locked #game-toggle,
 body.gate-locked #gesture-toggle,
 body.gate-locked #photo-toggle,
-body.gate-locked #capsule-toggle {
+body.gate-locked #capsule-toggle,
+body.gate-locked #todo-toggle {
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.5s ease;
@@ -1938,6 +2102,7 @@ body.game-active #birthday-counter,
 body.game-active #advent-toggle,
 body.game-active #game-toggle,
 body.game-active #gesture-toggle,
+body.game-active #todo-toggle,
 body.game-active #webcam,
 body.game-active #hand-overlay {
     opacity: 0;

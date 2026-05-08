@@ -51,6 +51,7 @@ const LEVEL_UNLOCKS = [
 const SESSION_CAP = {
     pet:     60,
     gesture: 50,
+    todo:    40,
 };
 
 function safeRead() {
@@ -141,6 +142,7 @@ export class CatEvolution {
     // Convenience hooks called from interaction code.
     notePet()      { return this.addXp(2,  'pet'); }
     noteGesture()  { return this.addXp(5,  'gesture'); }
+    noteTodo()     { return this.addXp(4,  'todo'); }
     noteCelebrate(){ return this.addXp(30, 'celebrate'); }
     noteVisit() {
         if (this._sessionGains.visit) return false;

@@ -76,6 +76,10 @@
         💌<span id="capsule-count" class="capsule-count"></span>
       </button>
 
+      <button id="todo-toggle" type="button" title="Việc cần làm hôm nay">
+        📝<span id="todo-count" class="todo-count"></span>
+      </button>
+
       <div id="game-menu" role="dialog" aria-modal="true" hidden>
         <div class="gm-modal">
           <div class="gm-header">
@@ -204,6 +208,33 @@
             </button>
           </div>
           <p id="capsule-write-error" class="capsule-error" aria-live="polite"></p>
+        </div>
+      </div>
+
+      <div id="todo-overlay" role="dialog" aria-modal="true" aria-labelledby="todo-title">
+        <div class="todo-modal">
+          <div class="todo-header">
+            <h2 id="todo-title">Việc hôm nay · cho Như</h2>
+            <button id="todo-close" type="button" aria-label="Đóng">×</button>
+          </div>
+
+          <div id="todo-list" class="todo-list"></div>
+
+          <div class="todo-add">
+            <input
+              id="todo-input"
+              type="text"
+              maxlength="120"
+              placeholder="Em viết một việc nhỏ · rồi Enter"
+              class="todo-input"
+              autocomplete="off"
+            />
+            <button id="todo-add-btn" type="button" class="todo-add-btn" aria-label="Thêm">+</button>
+          </div>
+
+          <p class="todo-hint">
+            Tick xong em sẽ thấy cánh hoa rơi · hết việc thì mèo sẽ ăn mừng nha.
+          </p>
         </div>
       </div>
 
