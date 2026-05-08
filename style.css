@@ -1917,6 +1917,18 @@ body.game-active #capsule-toggle {
 .game-overlay-btn:hover { background: rgba(var(--accent-rgb), 0.22); }
 .game-overlay-btn + .game-overlay-btn { margin-left: 10px; }
 
+/* ── body.gate-locked hides the right-side toggles before Begin ─────────── */
+/* Set on <body> in HTML so the icons never flash on first paint, then removed
+   by main.js inside beginExperience() once the password is accepted. */
+body.gate-locked #game-toggle,
+body.gate-locked #gesture-toggle,
+body.gate-locked #photo-toggle,
+body.gate-locked #capsule-toggle {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+}
+
 /* ── body.game-active hides the gesture-mode UI ─────────────────────────── */
 body.game-active #gesture-indicator,
 body.game-active #legend,

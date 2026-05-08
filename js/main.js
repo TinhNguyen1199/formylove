@@ -674,6 +674,10 @@ async function beginExperience() {
     applyGestureTrackingState(localStorage.getItem(GESTURE_PAUSED_KEY) !== "0");
     ui.startGate.classList.add("hidden");
     setTimeout(() => ui.startGate.remove(), 800);
+    // Gate is open — reveal the right-side toggles (game / gesture / photo /
+    // capsule). They were hidden via body.gate-locked from initial HTML so
+    // they never flash before the password is accepted.
+    document.body.classList.remove("gate-locked");
 
     // Birthday party arrival: kick off the music-box loop and a celebratory
     // confetti burst the moment the experience begins. A bonus burst fires
