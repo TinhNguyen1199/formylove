@@ -668,10 +668,10 @@ async function beginExperience() {
     await catAudio.unlock({ ctx: audio.ctx, master: audio.master });
     await tracker.start();
     _trackerStarted = true;
-    // Restore the user's persisted gesture-tracking preference. If they
-    // previously turned it off, MediaPipe inference stays paused on this
-    // session as well.
-    applyGestureTrackingState(localStorage.getItem(GESTURE_PAUSED_KEY) === "1");
+    // Default: tracking starts paused. Only resume if the user explicitly
+    // turned it on in a previous session (stored "0"). This keeps the first
+    // visit quiet and low-power; tapping the toggle activates MediaPipe.
+    applyGestureTrackingState(localStorage.getItem(GESTURE_PAUSED_KEY) !== "0");
     ui.startGate.classList.add("hidden");
     setTimeout(() => ui.startGate.remove(), 800);
 
