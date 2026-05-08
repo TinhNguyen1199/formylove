@@ -21,6 +21,18 @@ const FACTORIES = {
     thumbs_up:    () => new FingerHeart(),
 };
 
+// Gesture-driven tint forwarded to the 2D Space Cat as a soft drop-shadow
+// glow. Hex values mirror the CSS --accent palette in style.css so the cat
+// breathes the same colour as the UI accent for the active gesture.
+const CAT_TINTS = {
+    fist:         0x6fbf9d,   // emerald
+    open_palm:    0xd8909f,   // sakura rose
+    peace:        0xb09ad0,   // lavender
+    finger_heart: 0xff6fa3,   // brand rose
+    thumbs_up:    0xff6fa3,
+    none:         null,
+};
+
 export class SceneManager {
     constructor(canvas) {
         this.canvas = canvas;
@@ -38,6 +50,11 @@ export class SceneManager {
 
         // Cinematic ambience: a quiet star field that does NOT swap with gestures.
         this._buildAmbience();
+
+        // The Space Cat is a 2D DOM companion now — main.js owns its
+        // construction + update loop. We just keep a reference so the
+        // gesture-tint can be forwarded inside setGesture().
+        this.cat = null;
 
         // Postprocessing pipeline:
         //   render → DoF (slight, focuses on subject depth) → bloom → output
@@ -137,7 +154,14 @@ export class SceneManager {
         obj.addTo(this.scene);
         obj.enter();
         this.current = obj;
+
+        // Cat picks up the gesture's accent colour as a gentle drop-shadow
+        // glow. 'none' clears the glow entirely.
+        const tint = CAT_TINTS[gesture];
+        this.cat?.setGestureTint(tint, gesture === 'none' ? 0 : 0.6);
     }
+
+    setCat(cat) { this.cat = cat; }
 
     setConfidence(value) {
         // Forward live pose confidence to the active object so it can fade its

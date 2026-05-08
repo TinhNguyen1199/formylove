@@ -1430,3 +1430,220 @@ body.game-active #three-canvas {
         inset 0 0 8px rgba(255, 179, 200, 0.3);
     transition: width 0.25s ease, height 0.25s ease, opacity 0.25s ease;
 }
+
+/* ─── Space Cat (2D SVG companion) ────────────────────────────────────────
+ * The cat lives in its own fixed-position container layered above the 3D
+ * canvas (z-index 50, just below the gesture UI). JS sets the container's
+ * transform: translate(x, y) each frame; CSS owns the always-on micro-motion
+ * (breath, tail sway, idle ear-flick) so JS can focus on reactions.
+ *
+ * Layout pivot: the SVG's viewBox is centred at (0, 0). The container's
+ * translate() moves the cat's center to (x, y); .cat-svg is shifted up-left
+ * inside the container so the translate target reads as the cat's center. */
+
+.space-cat {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 50;
+    /* The SVG below is 220×260; offset so transform: translate(x, y) lands
+       on the cat's geometric centre (the head's chin area). */
+    margin-left: -110px;
+    margin-top:  -110px;
+    width:  220px;
+    height: 260px;
+    pointer-events: none;
+    will-change: transform;
+    transition: opacity 0.4s ease;
+    --cat-tint: rgba(255, 200, 220, 0);
+    --cat-tint-amount: 0;
+}
+
+.space-cat.paused { opacity: 0.55; }
+
+.space-cat .cat-svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: auto;            /* only the cat shape, not the bbox */
+    cursor: grab;
+    /* Soft baseline drop-shadow + gesture-tinted glow that scales with
+       --cat-tint-amount. The tint colour comes from sceneManager. */
+    filter:
+        drop-shadow(0 4px 14px rgba(255, 195, 215, 0.30))
+        drop-shadow(0 0 calc(18px * var(--cat-tint-amount)) var(--cat-tint));
+    transition: filter 0.6s ease;
+}
+.space-cat:active .cat-svg { cursor: grabbing; }
+
+/* Breath — the body group scales gently in/out. JS overrides scale during
+   stretch (sets element.style.transform), so this animation picks the
+   stronger declared transform vs. the JS one. CSS keyframes remain visible
+   when JS isn't writing to .style.transform. */
+.space-cat .cat-body-group {
+    transform-origin: center 50%;
+    transform-box: fill-box;
+    animation: cat-breath 3.6s ease-in-out infinite;
+}
+@keyframes cat-breath {
+    0%, 100% { transform: scale(1.000, 1.000); }
+    50%      { transform: scale(1.018, 1.012); }
+}
+
+/* Tail — slow side-to-side sway from the base. The mood class accelerates
+   this for playful / curious states. */
+.space-cat .cat-tail-group {
+    transform-origin: 22px -26px;       /* tail base in SVG coords */
+    transform-box: fill-box;
+    animation: cat-tail-sway 4.0s ease-in-out infinite alternate;
+}
+@keyframes cat-tail-sway {
+    0%   { transform: rotate(-6deg); }
+    100% { transform: rotate( 6deg); }
+}
+.space-cat.mood-curious      .cat-tail-group { animation-duration: 2.6s; }
+.space-cat.mood-playful      .cat-tail-group { animation-duration: 1.6s; }
+.space-cat.mood-affectionate .cat-tail-group { animation-duration: 3.2s; }
+.space-cat.mood-sleepy       .cat-tail-group { animation-duration: 6.0s; }
+
+/* Head — gentle nod separate from the body breath. Subtle floating. */
+.space-cat .cat-head {
+    transform-origin: 0 0;
+    transform-box: fill-box;
+    animation: cat-head-bob 5.2s ease-in-out infinite;
+}
+@keyframes cat-head-bob {
+    0%, 100% { transform: translateY(0)      rotate(0deg); }
+    50%      { transform: translateY(-1.2px) rotate(-0.6deg); }
+}
+
+/* Ears — JS sets transform: rotate(...) on twitch; baseline rest is 0. */
+.space-cat .cat-ear-left,
+.space-cat .cat-ear-right {
+    transform-box: fill-box;
+    transition: transform 0.18s ease;
+}
+
+/* Sleeping — close eyes via lids, slow everything down, droop ears,
+   curl whiskers a touch. Body leans forward (cat-loaf). */
+.space-cat.sleeping .eye-lid-left,
+.space-cat.sleeping .eye-lid-right { transform-box: fill-box; }
+.space-cat.sleeping .cat-tail-group { animation-duration: 7.0s; }
+.space-cat.sleeping .cat-body-group { animation-duration: 5.8s; }
+.space-cat.sleeping .cat-ear-left   { transform: rotate(8deg)  translateY(2px) !important; }
+.space-cat.sleeping .cat-ear-right  { transform: rotate(-8deg) translateY(2px) !important; }
+.space-cat.sleeping .cat-head       { animation-duration: 7.0s; }
+.space-cat.sleeping .cat-svg        { filter: drop-shadow(0 0 18px rgba(200, 170, 230, 0.35)); }
+
+/* Celebration — gentle zero-G jump + spin. Triggered by class toggle. */
+.space-cat.celebrating .cat-svg {
+    animation: cat-celebrate 1.6s cubic-bezier(.4, 0, .3, 1);
+}
+@keyframes cat-celebrate {
+    0%   { transform: translateY(0)     rotate(0deg)  scale(1); }
+    25%  { transform: translateY(-40px) rotate(120deg) scale(1.05); }
+    55%  { transform: translateY(-55px) rotate(360deg) scale(1.08); }
+    80%  { transform: translateY(-15px) rotate(480deg) scale(1.02); }
+    100% { transform: translateY(0)     rotate(540deg) scale(1); }
+}
+
+/* ─── Heart / sparkle pet bursts ───────────────────────────────────────── */
+.space-cat .cat-heart-layer,
+.space-cat .cat-zzz-layer {
+    position: absolute;
+    left: 50%;
+    top:  35%;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+.cat-pet-heart {
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-size: 18px;
+    line-height: 1;
+    pointer-events: none;
+    transform: translate(-50%, -50%) scale(var(--size, 1));
+    animation: cat-heart-float 1.4s ease-out forwards;
+    animation-delay: var(--delay, 0ms);
+    text-shadow: 0 0 8px rgba(255, 190, 215, 0.6);
+    will-change: transform, opacity;
+}
+.cat-pet-heart.sparkle { font-size: 14px; text-shadow: 0 0 10px rgba(255, 240, 200, 0.7); }
+@keyframes cat-heart-float {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.4) rotate(0deg); }
+    20%  { opacity: 1; transform: translate(-50%, -50%) scale(var(--size, 1)) rotate(0deg); }
+    100% { opacity: 0;
+           transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy)))
+                      scale(calc(var(--size, 1) * 0.6))
+                      rotate(var(--rot, 0)); }
+}
+
+/* ─── ZZZ sleep particles ──────────────────────────────────────────────── */
+.cat-zzz {
+    position: absolute;
+    left: 30px;
+    top: -10px;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 22px;
+    color: rgba(255, 246, 220, 0.92);
+    text-shadow: 0 0 10px rgba(255, 220, 150, 0.55);
+    pointer-events: none;
+    transform: translate(0, 0) scale(var(--size, 1));
+    animation: cat-zzz-float 2.8s ease-out forwards;
+    will-change: transform, opacity;
+}
+@keyframes cat-zzz-float {
+    0%   { opacity: 0; transform: translate(0, 0) scale(0.6); }
+    15%  { opacity: 1; }
+    100% { opacity: 0;
+           transform: translate(calc(var(--dx) + 30px), -90px) scale(var(--size, 1)); }
+}
+
+/* ─── Mood-driven micro-tints ──────────────────────────────────────────── */
+.space-cat.mood-affectionate .cat-svg {
+    filter:
+        drop-shadow(0 4px 14px rgba(255, 195, 215, 0.40))
+        drop-shadow(0 0 calc(22px * var(--cat-tint-amount)) var(--cat-tint));
+}
+.space-cat.mood-playful .cat-svg {
+    filter:
+        drop-shadow(0 4px 14px rgba(255, 215, 235, 0.35))
+        drop-shadow(0 0 calc(20px * var(--cat-tint-amount)) var(--cat-tint));
+}
+.space-cat.mood-sleepy .cat-svg {
+    filter:
+        drop-shadow(0 4px 14px rgba(200, 175, 230, 0.30))
+        drop-shadow(0 0 calc(14px * var(--cat-tint-amount)) var(--cat-tint));
+}
+
+/* ─── Speech bubble ("Meow 💕" on pet) ─────────────────────────────────── */
+.cat-speech {
+    position: fixed;
+    z-index: 60;
+    padding: 4px 10px;
+    border-radius: 14px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 14px;
+    font-style: italic;
+    color: #fff3df;
+    background: rgba(28, 16, 36, 0.55);
+    border: 1px solid rgba(255, 195, 220, 0.30);
+    box-shadow: 0 0 16px rgba(255, 150, 200, 0.25);
+    pointer-events: none;
+    transform-origin: 0 100%;
+    animation: cat-speech-float 1.6s ease forwards;
+}
+@keyframes cat-speech-float {
+    0%   { opacity: 0; transform: translate(-4px, 6px) scale(0.85); }
+    20%  { opacity: 1; transform: translate(0, 0)      scale(1.0); }
+    80%  { opacity: 1; transform: translate(8px, -22px) scale(1.0); }
+    100% { opacity: 0; transform: translate(14px, -34px) scale(0.95); }
+}
+
+/* While a game is open, hide the cat — keeps the gesture/cat layer out of
+   the game stage. (The cat itself is also paused via pausables.) */
+body.game-active .space-cat { display: none; }
+

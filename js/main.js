@@ -12,6 +12,10 @@ import { CursorMagnet } from "./cursorMagnet.js";
 import { AmbientEvents } from "./ambientEvents.js";
 import { Whispers } from "./whispers.js";
 import { GameManager } from "./games/manager.js";
+import { CatBehaviorState } from "./ai/catBehaviorState.js";
+import { CatAudio }         from "./audio/catAudio.js";
+import { CatInteraction }   from "./interactive/catInteraction.js";
+import { SpaceCat }         from "./objects/spaceCat.js";
 
 const RING_CIRCUMFERENCE = 106.81; // matches stroke-dasharray in style.css
 const BIRTHDAY = { month: 5, day: 27 };   // Như · 27.5
@@ -71,6 +75,33 @@ const sceneManager = new SceneManager(document.getElementById("three-canvas"));
 const overlay = new HandOverlay(ui.overlayCanvas);
 const audio = new AudioFX();
 const confetti = new ConfettiBurst();
+
+// ── Space Cat companion (2D SVG) ───────────────────────────────────────────
+// Behavior state is the AI brain (mood scalars → named state). Cat audio
+// piggy-backs on AudioFX's context but routes through its own gain bus so
+// the user could mute the cat independently. Interaction layer wires DOM
+// events → cat target / behavior feeds. The cat itself is a DOM element
+// inserted into <body>; we drive its update loop separately from the
+// Three.js render loop so 3D pause doesn't freeze the cat unintentionally
+// (and vice versa — the cat keeps purring even while a heavy gesture
+// dissolves out).
+const cat            = new SpaceCat();
+const catBehavior    = new CatBehaviorState();
+const catAudio       = new CatAudio({ volume: 0.45 });
+const catInteraction = new CatInteraction({ cat, behavior: catBehavior, audio: catAudio });
+sceneManager.setCat(cat);
+
+// Cat update loop — independent rAF chain so the cat can pause/resume
+// independently of the 3D scene. Both `cat` and `catInteraction` honour
+// pause(); the GameManager pauses both via the `pausables` array below.
+let _catLastT = performance.now();
+(function catLoop(t) {
+    const dt = Math.min((t - _catLastT) / 1000, 0.05);
+    _catLastT = t;
+    catInteraction.update(dt);
+    cat.update(dt, t / 1000);
+    requestAnimationFrame(catLoop);
+})(performance.now());
 
 // ── Birthday countdown ─────────────────────────────────────────────────────
 // Computes time remaining until the next 27.5 (or "today" if it's the day).
@@ -253,6 +284,9 @@ function maybeAdvancePoem(gesture) {
       ui.poemCard.classList.add("complete");
       // Small celebratory burst to mark "the letter is finished".
       setTimeout(() => confetti.burst({ count: 80, duration: 3500 }), 500);
+      // The cat joins the celebration: zero-G jump + spin, heart burst,
+      // soft chime. Fires shortly after the final line finishes typing.
+      setTimeout(() => catInteraction.triggerCelebration(), 700);
     }
   });
 }
@@ -316,7 +350,7 @@ if (ui.gameToggle && ui.gameMenu && ui.gameContainer) {
     statsEl:     ui.gameStats,
     stageEl:     ui.gameStage,
     photos:      PERSONAL.photos ?? [],
-    pausables:   [sceneManager, cursorMagnet, ambientEvents, whispers, tracker],
+    pausables:   [sceneManager, cursorMagnet, ambientEvents, whispers, tracker, catInteraction, cat],
   });
 }
 
@@ -387,6 +421,9 @@ tracker
 ui.startBtn.addEventListener("click", async () => {
   try {
     await audio.unlock();
+    // Cat audio shares the same WebAudio graph so there's only one context,
+    // but routes through its own gain bus (separate volume from music box).
+    await catAudio.unlock({ ctx: audio.ctx, master: audio.master });
     await tracker.start();
     ui.startBtn.classList.add("hidden");
     setTimeout(() => ui.startBtn.remove(), 800);
