@@ -20,10 +20,11 @@ const CURSOR_IDLE_MS      = 1800;
 const FAST_SPEED_PX       = 3.0;     // px/ms
 
 export class CatInteraction {
-    constructor({ cat, behavior, audio }) {
+    constructor({ cat, behavior, audio, evolution }) {
         this.cat = cat;
         this.behavior = behavior;
         this.audio = audio;
+        this.evolution = evolution;
 
         this._mouseX = window.innerWidth  / 2;
         this._mouseY = window.innerHeight / 2;
@@ -138,6 +139,7 @@ export class CatInteraction {
         this._wakeIfSleeping();
         this.behavior.feedPet();
         this.cat.pet(14);
+        this.evolution?.notePet();
 
         const m = this.behavior.state;
         const meowType =

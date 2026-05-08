@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { listAllAsObjectUrls } from '../photoStore.js';
 
 // Polaroid photo gallery — composites each user photo onto a cream paper
 // background with the classic asymmetric polaroid border, then floats them
@@ -7,6 +8,10 @@ import * as THREE from 'three';
 // Lifecycle helpers (load, addTo, setOpacity, update, dispose) let a parent
 // gesture object plug the gallery into its own forming/idle/dissolving state
 // without the gallery needing to know about it.
+//
+// Sources photos from two places, in this order:
+//   1. file paths passed to the constructor (PERSONAL.photos — bundled)
+//   2. IndexedDB blobs uploaded via PhotoManager (private, on-device only)
 
 const PAPER_COLOR = '#f5ecdf';     // warm cream
 const PHOTO_INSET = { top: 30, side: 30, bottom: 100 };   // px on a 512×600 canvas
@@ -72,15 +77,28 @@ export class PhotoGallery {
         this._opacity = 0;
         this._opacityTarget = 0;
         this._loaded = false;
+        this._privateUrls = []; // blob: URLs from IndexedDB — must revoke on dispose
     }
 
     // Async — call early, may resolve after the parent has already started
     // ticking. The sprites simply pop in (faded by setOpacity) once ready.
     async load() {
-        const results = await Promise.allSettled(
+        // Bundled photos (file paths in PERSONAL.photos)
+        const bundled = await Promise.allSettled(
             this.paths.map((p) => loadImageElement(p)),
         );
-        const ok = results
+
+        // Private photos (IndexedDB) — fail-soft if storage is unavailable
+        let privateRows = [];
+        try { privateRows = await listAllAsObjectUrls(); }
+        catch (_e) { privateRows = []; }
+
+        this._privateUrls = privateRows.map((r) => r.url);
+        const privateLoads = await Promise.allSettled(
+            privateRows.map((r) => loadImageElement(r.url)),
+        );
+
+        const ok = [...bundled, ...privateLoads]
             .map((r) => (r.status === 'fulfilled' ? r.value : null))
             .filter(Boolean);
 
@@ -172,5 +190,7 @@ export class PhotoGallery {
             entry.tex.dispose();
         }
         this.entries = [];
+        for (const u of this._privateUrls) URL.revokeObjectURL(u);
+        this._privateUrls = [];
     }
 }

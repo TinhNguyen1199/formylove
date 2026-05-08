@@ -11,7 +11,11 @@
       "Bash(curl -s -o /dev/null -w '%{http_code}  %{url_effective}\\\\n' http://127.0.0.1:8080/index.html http://127.0.0.1:8080/style.css http://127.0.0.1:8080/js/main.js http://127.0.0.1:8080/js/sceneManager.js http://127.0.0.1:8080/js/objects/lightBeamHeart.js http://127.0.0.1:8080/js/objects/lifeOrb.js http://127.0.0.1:8080/js/objects/baseObject.js http://127.0.0.1:8080/js/gestureDetector.js http://127.0.0.1:8080/js/handOverlay.js http://127.0.0.1:8080/js/audio.js)",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(node --input-type=module --check)"
+      "Bash(node --input-type=module --check)",
+      "Bash(PowerShell *)",
+      "Bash(python *)",
+      "Bash(curl *)",
+      "Bash(kill bqitwiz8g *)"
     ]
   }
 }

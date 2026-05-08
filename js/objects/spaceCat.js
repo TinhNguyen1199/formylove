@@ -87,6 +87,16 @@ export class SpaceCat {
 
         this.idle = new IdleScheduler();
 
+        // Level pill + level-up banner — driven externally via setLevel().
+        this.levelPill = document.createElement('div');
+        this.levelPill.className = 'cat-level-pill';
+        this.levelPill.textContent = '';
+        this.container.appendChild(this.levelPill);
+
+        this.levelBanner = document.createElement('div');
+        this.levelBanner.className = 'cat-levelup-banner';
+        this.container.appendChild(this.levelBanner);
+
         this._applyPosition();
         this._applyMoodClass();
 
@@ -171,6 +181,35 @@ export class SpaceCat {
     // pause/resume — used while a game is running so the cat sits still.
     pause()  { this._paused = true;  this.container.classList.add('paused'); }
     resume() { this._paused = false; this.container.classList.remove('paused'); }
+
+    // Toggle which accessories are visible. Pass an array of ids:
+    //   'halo' | 'bow' | 'pendant' | 'hat' | 'scarf' | 'crown'
+    // Anything not listed is hidden. Safe to call any time.
+    setUnlocks(unlocks = []) {
+        const c = this.container.classList;
+        const all = ['halo', 'bow', 'pendant', 'hat', 'scarf', 'crown'];
+        for (const u of all) c.toggle(`cat-show-${u}`, unlocks.includes(u));
+    }
+
+    // Persistent small "L3" pill near the cat. Empty string hides it.
+    setLevelLabel(label) {
+        if (!this.levelPill) return;
+        if (!label) { this.levelPill.classList.remove('visible'); return; }
+        this.levelPill.textContent = label;
+        this.levelPill.classList.add('visible');
+    }
+
+    // Brief celebration when XP rolls into a new level.
+    showLevelUp(text) {
+        if (!this.levelBanner) return;
+        this.levelBanner.textContent = text;
+        this.levelBanner.classList.remove('flash');
+        // Force reflow so the animation can replay rapidly.
+        void this.levelBanner.offsetWidth;
+        this.levelBanner.classList.add('flash');
+        // Heart burst on the cat to mark the moment.
+        for (let i = 0; i < 18; i++) this._spawnHeart(i % 4 === 0 ? 'sparkle' : 'heart');
+    }
 
     // Screen-space center of the cat — interaction layer needs this for hit
     // testing and drag-offset bookkeeping.
@@ -446,6 +485,57 @@ const SVG_MARKUP = /* html */`
       <line x1=" 12" y1="-3" x2=" 42" y2="-7"/>
       <line x1=" 12" y1="0"  x2=" 44" y2="0"/>
       <line x1=" 12" y1="3"  x2=" 42" y2="6"/>
+    </g>
+
+    <!-- Accessories — visible only when the container has the matching
+         .cat-show-* class. Drawn last in the head group so they stack on top
+         of the head/cheeks/eyes/nose. -->
+
+    <!-- Bow on right ear -->
+    <g class="cat-accessory acc-bow" transform="translate(28, -56)">
+      <path d="M 0,0 Q -10,-7 -10,4 Q -4,2 0,0 Z" fill="#ff7aa6"/>
+      <path d="M 0,0 Q  10,-7  10,4 Q  4,2 0,0 Z" fill="#ff5d8a"/>
+      <ellipse cx="0" cy="0" rx="3" ry="2.6" fill="#ff95b4"/>
+      <ellipse cx="-0.5" cy="-0.7" rx="1.2" ry="0.6" fill="#fff" opacity="0.7"/>
+    </g>
+
+    <!-- Birthday cone hat (replaced by crown at L6) -->
+    <g class="cat-accessory acc-hat">
+      <path d="M -16,-58 L 16,-58 L 0,-100 Z" fill="#ff6fa3"/>
+      <path d="M -10,-72 L 10,-72" stroke="#fff" stroke-width="2.2"
+            stroke-linecap="round" stroke-dasharray="4,3"/>
+      <path d="M -13,-83 L 13,-83" stroke="#fff" stroke-width="1.8"
+            stroke-linecap="round" stroke-dasharray="3,3" opacity="0.85"/>
+      <circle cx="0" cy="-101" r="5" fill="#fff5fa"/>
+      <circle cx="-1" cy="-102" r="2" fill="#ffd5e5"/>
+    </g>
+
+    <!-- Starlight crown (L6) -->
+    <g class="cat-accessory acc-crown">
+      <path d="M -22,-55 L -16,-72 L -8,-58 L 0,-80 L 8,-58 L 16,-72 L 22,-55 Z"
+            fill="#ffd96a" stroke="#c9a13b" stroke-width="0.6"/>
+      <circle cx="0" cy="-67" r="3" fill="#ff6fa3"/>
+      <circle cx="-13" cy="-62" r="2" fill="#fff5cc"/>
+      <circle cx=" 13" cy="-62" r="2" fill="#fff5cc"/>
+      <circle cx="0" cy="-77" r="1.4" fill="#fff" opacity="0.9"/>
+    </g>
+
+    <!-- Heart pendant on chest -->
+    <g class="cat-accessory acc-pendant">
+      <path d="M -10,18 L 0,32" stroke="#ffb3c8" stroke-width="0.7" fill="none"/>
+      <path d="M  10,18 L 0,32" stroke="#ffb3c8" stroke-width="0.7" fill="none"/>
+      <path d="M 0,38 C -4,32 -10,34 -8,40 C -6,46 0,50 0,50 C 0,50 6,46 8,40 C 10,34 4,32 0,38 Z"
+            fill="#ff6fa3" stroke="#c54a73" stroke-width="0.6"/>
+      <ellipse cx="-2" cy="40" rx="1.4" ry="0.9" fill="#ffd0dd" opacity="0.8"/>
+    </g>
+
+    <!-- Soft scarf wrapping the neck -->
+    <g class="cat-accessory acc-scarf">
+      <path d="M -38,16 Q -34,12 -28,14 Q 0,22 28,14 Q 34,12 38,16 L 38,28 Q 0,34 -38,28 Z"
+            fill="#7fbfd9"/>
+      <path d="M -38,16 Q -10,24 38,16" stroke="#a8d4ff" stroke-width="1.5"
+            fill="none" opacity="0.8"/>
+      <path d="M -28,18 L -42,42 L -34,46 L -22,28 Z" fill="#a8d4ff"/>
     </g>
   </g>
 </svg>

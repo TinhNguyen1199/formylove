@@ -17,9 +17,12 @@ import { Celestial } from "./celestial.js";
 import { ZenMode } from "./zenMode.js";
 import { GameManager } from "./games/manager.js";
 import { CatBehaviorState } from "./ai/catBehaviorState.js";
+import { CatEvolution }     from "./ai/catEvolution.js";
 import { CatAudio }         from "./audio/catAudio.js";
 import { CatInteraction }   from "./interactive/catInteraction.js";
 import { SpaceCat }         from "./objects/spaceCat.js";
+import { PhotoManager }     from "./photoManager.js";
+import { CapsuleManager }   from "./capsuleManager.js";
 
 const RING_CIRCUMFERENCE = 106.81; // matches stroke-dasharray in style.css
 const BIRTHDAY = { month: 5, day: 27 };   // Như · 27.5
@@ -68,6 +71,34 @@ const ui = {
   gameClose:     document.getElementById("game-close"),
   gameStats:     document.getElementById("game-stats"),
   gameStage:     document.getElementById("game-stage"),
+
+  // Photo manager
+  photoToggle:    document.getElementById("photo-toggle"),
+  photoOverlay:   document.getElementById("photo-overlay"),
+  photoGrid:      document.getElementById("photo-grid"),
+  photoDropzone:  document.getElementById("photo-dropzone"),
+  photoFileInput: document.getElementById("photo-file-input"),
+  photoClose:     document.getElementById("photo-close"),
+  photoCount:     document.getElementById("photo-count"),
+
+  // Time capsule
+  capsuleToggle:       document.getElementById("capsule-toggle"),
+  capsuleOverlay:      document.getElementById("capsule-overlay"),
+  capsuleList:         document.getElementById("capsule-list"),
+  capsuleNewBtn:       document.getElementById("capsule-new-btn"),
+  capsuleClose:        document.getElementById("capsule-close"),
+  capsuleCount:        document.getElementById("capsule-count"),
+  capsuleWrite:        document.getElementById("capsule-write"),
+  capsuleWriteClose:   document.getElementById("capsule-write-close"),
+  capsuleWriteTitle:   document.getElementById("capsule-write-title"),
+  capsuleWriteBody:    document.getElementById("capsule-write-body"),
+  capsuleSaveBtn:      document.getElementById("capsule-save-btn"),
+  capsuleWriteError:   document.getElementById("capsule-write-error"),
+  capsuleReveal:       document.getElementById("capsule-reveal"),
+  capsuleRevealClose:  document.getElementById("capsule-reveal-close"),
+  capsuleRevealTitle:  document.getElementById("capsule-reveal-title"),
+  capsuleRevealMeta:   document.querySelector("#capsule-reveal .capsule-reveal-meta"),
+  capsuleRevealBody:   document.querySelector("#capsule-reveal .capsule-reveal-body"),
 };
 
 const GESTURE_LABELS = {
@@ -94,9 +125,29 @@ const confetti = new ConfettiBurst();
 // dissolves out).
 const cat            = new SpaceCat();
 const catBehavior    = new CatBehaviorState();
+const catEvolution   = new CatEvolution();
 const catAudio       = new CatAudio({ volume: 0.45 });
-const catInteraction = new CatInteraction({ cat, behavior: catBehavior, audio: catAudio });
+const catInteraction = new CatInteraction({
+  cat, behavior: catBehavior, audio: catAudio, evolution: catEvolution,
+});
 sceneManager.setCat(cat);
+
+// Reflect persisted level on first paint, then listen for level-ups so the
+// cat sprouts new accessories the moment XP rolls over a threshold.
+function applyCatLevelState() {
+  cat.setUnlocks(catEvolution.getUnlocks());
+  const lvl = catEvolution.getLevel();
+  cat.setLevelLabel(lvl > 0 ? `L${lvl} · ${catEvolution.getName()}` : "");
+}
+applyCatLevelState();
+
+catEvolution.onLevelUp((newLevel) => {
+  applyCatLevelState();
+  cat.showLevelUp(`Level ${newLevel} · ${catEvolution.getName()}`);
+  catAudio?.chime();
+  setTimeout(() => catAudio?.meow("chirp"), 350);
+  confetti.burst({ count: 60, duration: 3500 });
+});
 
 // Cat update loop — independent rAF chain so the cat can pause/resume
 // independently of the 3D scene. Both `cat` and `catInteraction` honour
@@ -226,6 +277,10 @@ function showWelcome() {
   const visit = recordVisit();
   const msg   = welcomeMessage(visit);
 
+  // Each fresh visit nudges the cat's XP forward. Capped to once per session
+  // by the evolution module.
+  catEvolution.noteVisit();
+
   ui.welcomeIcon.textContent  = msg.icon;
   ui.welcomeTitle.textContent = msg.title;
   ui.welcomeBody.textContent  = msg.body;
@@ -321,6 +376,7 @@ function maybeAdvancePoem(gesture) {
       // The cat joins the celebration: zero-G jump + spin, heart burst,
       // soft chime. Fires shortly after the final line finishes typing.
       setTimeout(() => catInteraction.triggerCelebration(), 700);
+      catEvolution.noteCelebrate();
     }
   });
 }
@@ -375,7 +431,10 @@ const detector = new GestureDetector({
     document.body.dataset.gesture = gesture;
     document.body.dataset.active  = gesture !== "none" ? "true" : "false";
 
-    if (gesture !== "none") audio.playGestureCue(gesture);
+    if (gesture !== "none") {
+      audio.playGestureCue(gesture);
+      catEvolution.noteGesture();
+    }
     sceneManager.setGesture(gesture);
 
     // First gesture lock-in dismisses the daily-message card so it doesn't
@@ -487,6 +546,45 @@ if (ui.gameToggle && ui.gameMenu && ui.gameContainer) {
     stageEl:     ui.gameStage,
     photos:      PERSONAL.photos ?? [],
     pausables:   [sceneManager, cursorMagnet, ambientEvents, whispers, livingBackground, celestial, zenMode, trackerPausable, catInteraction, cat],
+  });
+}
+
+// ── Photo manager (private uploads) + Time capsule (encrypted letters) ────
+// Both modules wire themselves to their toggle buttons; PhotoManager also
+// dispatches a 'photos:changed' event when the gallery contents change so
+// any cached LoveText scene can pick up new photos on its next instantiation.
+if (ui.photoToggle && ui.photoOverlay) {
+  new PhotoManager({
+    toggle:    ui.photoToggle,
+    overlay:   ui.photoOverlay,
+    grid:      ui.photoGrid,
+    fileInput: ui.photoFileInput,
+    dropzone:  ui.photoDropzone,
+    closeBtn:  ui.photoClose,
+    countEl:   ui.photoCount,
+  });
+}
+
+if (ui.capsuleToggle && ui.capsuleOverlay) {
+  new CapsuleManager({
+    toggle:      ui.capsuleToggle,
+    overlay:     ui.capsuleOverlay,
+    list:        ui.capsuleList,
+    newBtn:      ui.capsuleNewBtn,
+    closeBtn:    ui.capsuleClose,
+    countEl:     ui.capsuleCount,
+    write:       ui.capsuleWrite,
+    writeClose:  ui.capsuleWriteClose,
+    writeTitle:  ui.capsuleWriteTitle,
+    writeBody:   ui.capsuleWriteBody,
+    writeSave:   ui.capsuleSaveBtn,
+    writeError:  ui.capsuleWriteError,
+    reveal:       ui.capsuleReveal,
+    revealClose:  ui.capsuleRevealClose,
+    revealTitle:  ui.capsuleRevealTitle,
+    revealMeta:   ui.capsuleRevealMeta,
+    revealBody:   ui.capsuleRevealBody,
+    defaultPassword: "27052002",
   });
 }
 

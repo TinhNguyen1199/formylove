@@ -68,6 +68,14 @@
         <span class="gt-icon">🖐</span>
       </button>
 
+      <button id="photo-toggle" type="button" title="Album ảnh riêng">
+        📷<span id="photo-count" class="photo-count"></span>
+      </button>
+
+      <button id="capsule-toggle" type="button" title="Time capsule · thư cho năm sau">
+        💌<span id="capsule-count" class="capsule-count"></span>
+      </button>
+
       <div id="game-menu" role="dialog" aria-modal="true" hidden>
         <div class="gm-modal">
           <div class="gm-header">
@@ -127,6 +135,86 @@
           <div class="reveal-day"></div>
           <div class="reveal-text"></div>
           <button id="advent-reveal-close" type="button">Đóng</button>
+        </div>
+      </div>
+
+      <div id="photo-overlay" role="dialog" aria-modal="true" aria-labelledby="photo-title">
+        <div class="photo-modal">
+          <div class="photo-header">
+            <h2 id="photo-title">Album riêng · ảnh của em</h2>
+            <button id="photo-close" type="button" aria-label="Đóng">×</button>
+          </div>
+
+          <div id="photo-dropzone" class="photo-dropzone">
+            <div class="pz-icon">📥</div>
+            <div class="pz-title">Kéo ảnh vào đây hoặc bấm để chọn</div>
+            <div class="pz-hint">Ảnh được lưu riêng trên máy em · không gửi đi đâu cả</div>
+            <input id="photo-file-input" type="file" accept="image/*" multiple hidden />
+          </div>
+
+          <div id="photo-grid" class="photo-grid"></div>
+
+          <p class="photo-hint">
+            Ảnh sẽ xuất hiện cùng polaroids khi em làm cử chỉ Peace · ✌️
+          </p>
+        </div>
+      </div>
+
+      <div id="capsule-overlay" role="dialog" aria-modal="true" aria-labelledby="capsule-title">
+        <div class="capsule-modal">
+          <div class="capsule-header">
+            <h2 id="capsule-title">Time capsule · thư cho năm sau</h2>
+            <button id="capsule-close" type="button" aria-label="Đóng">×</button>
+          </div>
+
+          <div id="capsule-list" class="capsule-list"></div>
+
+          <button id="capsule-new-btn" type="button" class="capsule-new-btn">
+            + Viết thư mới cho năm sau
+          </button>
+
+          <p class="capsule-hint">
+            Em viết · khoá đến 27.5 năm sau · mật khẩu mở giống lúc bắt đầu trang.
+          </p>
+        </div>
+      </div>
+
+      <div id="capsule-write" role="dialog" aria-modal="true">
+        <div class="capsule-write-modal">
+          <div class="capsule-header">
+            <h2>Thư cho Như · 27.5 năm sau</h2>
+            <button id="capsule-write-close" type="button" aria-label="Đóng">×</button>
+          </div>
+          <input
+            id="capsule-write-title"
+            type="text"
+            maxlength="60"
+            placeholder="Tiêu đề (tuỳ chọn)"
+            class="capsule-input"
+          />
+          <textarea
+            id="capsule-write-body"
+            rows="10"
+            placeholder="Em viết gì cho mình của năm sau..."
+            class="capsule-textarea"
+          ></textarea>
+          <div class="capsule-write-actions">
+            <button id="capsule-save-btn" type="button" class="capsule-save-btn">
+              Khoá lại đến 27.5 năm sau
+            </button>
+          </div>
+          <p id="capsule-write-error" class="capsule-error" aria-live="polite"></p>
+        </div>
+      </div>
+
+      <div id="capsule-reveal" role="dialog" aria-modal="true">
+        <div class="capsule-reveal-modal">
+          <div class="capsule-header">
+            <h2 id="capsule-reveal-title">Thư của em năm trước</h2>
+            <button id="capsule-reveal-close" type="button" aria-label="Đóng">×</button>
+          </div>
+          <div class="capsule-reveal-meta"></div>
+          <div class="capsule-reveal-body"></div>
         </div>
       </div>
 
