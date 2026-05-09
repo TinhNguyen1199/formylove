@@ -643,6 +643,7 @@ if (ui.capsuleToggle && ui.capsuleOverlay) {
 window.addEventListener("resize", () => sceneManager.resize());
 sceneManager.resize();
 sceneManager.start();
+sceneManager.precompileGestures();
 
 // Custom cursor — appended to body so its z-index isn't trapped under any layer.
 (function initCursor() {

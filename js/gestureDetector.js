@@ -6,8 +6,10 @@
 // the angle is invariant to where the hand is in the frame.
 //
 // Each gesture is then a smooth product of the conditions it cares about, so
-// the result is a soft 0..1 score rather than a hard yes/no. The classifier
-// picks the highest-scoring gesture above a threshold; everything else is 'none'.
+// the result is a soft 0..1 score rather than a hard yes/no. classify()
+// returns just the raw per-gesture scores; the detector class smooths those
+// scores across frames (EMA), then applies per-gesture thresholds and an
+// asymmetric hold-time debounce to decide what's actually locked in.
 
 const FINGER = {
     thumb:  { mcp: 2, pip: 3, tip: 4 },   // for thumb, "pip" is actually IP
@@ -15,6 +17,17 @@ const FINGER = {
     middle: { mcp: 9, pip: 10, tip: 12 },
     ring:   { mcp: 13, pip: 14, tip: 16 },
     pinky:  { mcp: 17, pip: 18, tip: 20 },
+};
+
+// Per-gesture lock thresholds. Geometric mean shrinks with factor count, so a
+// 6-factor gesture (thumbs_up) naturally produces lower scores than a 4-factor
+// one (fist). Calibrate the bar individually so each gesture fires at a
+// comparable level of "obviously this pose".
+const THRESHOLDS = {
+    fist:      0.50,
+    open_palm: 0.45,
+    peace:     0.45,
+    thumbs_up: 0.40,
 };
 
 const sub = (a, b) => ({ x: a.x - b.x, y: a.y - b.y, z: (a.z ?? 0) - (b.z ?? 0) });
@@ -68,8 +81,10 @@ const sharpen = (x) => {
     return t * t * (3 - 2 * t);
 };
 
+// Pure scoring: raw per-gesture scores from a single landmark frame. The
+// detector class smooths and thresholds these — keep this function stateless.
 function classify(lm) {
-    if (!lm) return { gesture: 'none', confidence: 0, scores: {} };
+    if (!lm) return { scores: {} };
 
     const raw = {
         thumb:  fingerExtension(lm, FINGER.thumb),    // IP-joint angle works for thumb too
@@ -85,13 +100,11 @@ function classify(lm) {
         ring:   sharpen(raw.ring),
         pinky:  sharpen(raw.pinky),
     };
-    const pinch    = pinchScore(lm);
     const thumbOut = thumbAbduction(lm);
     const thumbIn  = 1 - thumbOut;
 
     // Closed-finger score is the inverse of extended.
     const c = {
-        thumb:  1 - ext.thumb,
         index:  1 - ext.index,
         middle: 1 - ext.middle,
         ring:   1 - ext.ring,
@@ -117,55 +130,98 @@ function classify(lm) {
         thumbs_up:    gmean(ext.thumb, thumbOut, c.index, c.middle, c.ring, c.pinky),
     };
 
-    let best = 'none';
-    let bestScore = 0;
-    for (const g in scores) {
-        if (scores[g] > bestScore) { bestScore = scores[g]; best = g; }
-    }
-
-    // Threshold: below this, no gesture is confident enough to fire.
-    const THRESHOLD = 0.45;
-    const gesture = bestScore >= THRESHOLD ? best : 'none';
-    return { gesture, confidence: bestScore, scores };
+    return { scores };
 }
 
 export class GestureDetector {
-    constructor({ holdMs = 200, onChange, onTick, gestureFilter } = {}) {
+    constructor({
+        holdMs = 200,
+        holdMsExit = null,
+        smoothAlpha = 0.4,
+        onChange,
+        onTick,
+        gestureFilter,
+    } = {}) {
+        // Hold time required to LOCK IN a new gesture (deliberate commit). The
+        // UI ring fills against this same window.
         this.holdMs = holdMs;
+        // Hold time required to RELEASE back to 'none' (hand dropped). Shorter
+        // by default so cleanup feels responsive even when holdMs is long for
+        // commit ceremony — capped at 400ms so a configured 1s commit window
+        // doesn't drag scene cleanup with it.
+        this.holdMsExit = holdMsExit ?? Math.min(holdMs, 400);
+        // EMA factor on per-gesture raw scores. α=0.4 → ~30ms time constant at
+        // 60fps; a single noisy frame can't flip the winner.
+        this.smoothAlpha = smoothAlpha;
+
         this.onChange = onChange;
         this.onTick = onTick;
-        // Optional pre-state-machine hook: receives the raw classified gesture
-        // and returns the gesture the debounce machine should see. Returning
+        // Optional pre-state-machine hook: receives the picked gesture and
+        // returns the gesture the debounce machine should see. Returning
         // 'none' suppresses a gesture (used for warmup gating + per-gesture
         // cooldowns). Runs every frame, before candidate/current update.
         this.gestureFilter = gestureFilter;
+
         this.current = 'none';
         this.candidate = 'none';
         this.candidateSince = 0;
+
+        // Smoothed score per gesture. classify() returns only raw scores;
+        // these are EMA-blended each frame so the picker sees a stable signal.
+        this._smooth = { fist: 0, open_palm: 0, peace: 0, thumbs_up: 0 };
     }
 
     feed(landmarks) {
-        const result = classify(landmarks);
+        const { scores } = classify(landmarks);
         const now = performance.now();
 
-        if (this.gestureFilter) {
-            result.gesture = this.gestureFilter(result.gesture);
+        // ── EMA smoothing on raw scores ─────────────────────────────────────
+        // With a hand: blend new sample into the running average.
+        // Without a hand (frame dropped, hand left frame): decay scores fast
+        // toward zero so 'none' wins within a few frames, but don't reset hard
+        // — preserves a smooth opacity fade in the scene rather than a snap.
+        const a = this.smoothAlpha;
+        for (const g of Object.keys(this._smooth)) {
+            const s = scores[g] ?? 0;
+            this._smooth[g] = landmarks
+                ? a * s + (1 - a) * this._smooth[g]
+                : this._smooth[g] * 0.6;
         }
 
-        // Debounce machinery FIRST so holdProgress reads up-to-date state.
-        if (result.gesture !== this.candidate) {
-            this.candidate = result.gesture;
+        // ── Winner-take-all on smoothed scores, per-gesture threshold ───────
+        let best = 'none';
+        let bestScore = 0;
+        for (const g of Object.keys(this._smooth)) {
+            const s = this._smooth[g];
+            if (s > bestScore) { bestScore = s; best = g; }
+        }
+        const threshold = THRESHOLDS[best] ?? 0.45;
+        let pickedGesture = bestScore >= threshold ? best : 'none';
+
+        if (this.gestureFilter) {
+            pickedGesture = this.gestureFilter(pickedGesture);
+        }
+
+        // ── Asymmetric hysteresis ───────────────────────────────────────────
+        // Releasing back to 'none' uses holdMsExit (short, responsive cleanup).
+        // Any other transition (entering or swapping) uses holdMs (deliberate
+        // commit, matches the UI ring fill).
+        const holdNeeded = (pickedGesture === 'none' && this.current !== 'none')
+            ? this.holdMsExit
+            : this.holdMs;
+
+        if (pickedGesture !== this.candidate) {
+            this.candidate = pickedGesture;
             this.candidateSince = now;
-        } else if (result.gesture !== this.current &&
-                   now - this.candidateSince >= this.holdMs) {
-            // Candidate has been stable long enough to lock in.
-            this.current = result.gesture;
+        } else if (pickedGesture !== this.current &&
+                   now - this.candidateSince >= holdNeeded) {
+            this.current = pickedGesture;
             this.onChange?.(this.current);
         }
 
-        // Live confidence of the gesture currently locked in (not the candidate).
-        // This is what the scene fades against, so it reacts to your hand each frame.
-        const liveConfidence = result.scores[this.current] ?? 0;
+        // Live confidence of whatever is currently locked in. Smoothed so the
+        // scene's confidence-driven opacity doesn't flicker frame to frame.
+        const liveConfidence = this._smooth[this.current] ?? 0;
 
         // Progress toward locking in the current candidate (0..1).
         // 0  → no candidate seen
@@ -177,14 +233,14 @@ export class GestureDetector {
         } else if (this.candidate === this.current) {
             holdProgress = 1;
         } else {
-            holdProgress = Math.min(1, (now - this.candidateSince) / this.holdMs);
+            holdProgress = Math.min(1, (now - this.candidateSince) / holdNeeded);
         }
 
         this.onTick?.({
             current: this.current,
             currentConfidence: liveConfidence,
             candidate: this.candidate,
-            candidateConfidence: result.confidence,
+            candidateConfidence: bestScore,
             holdProgress,
         });
     }

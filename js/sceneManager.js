@@ -82,6 +82,15 @@ export class SceneManager {
         this.hand = null;        // smoothed hand position (Vector3) or null
         this._handTarget = new THREE.Vector3();
         this._hasHand = false;
+
+        // Grace window for "fist → none → open_palm" pattern. When the user
+        // briefly drops to 'none' while holding a morphable object, defer the
+        // dissolve so a follow-up morph target can rescue it instead of
+        // spawning a fresh object. 700ms covers most real-world transitions
+        // through the half-open hand state without making genuine cleanup
+        // feel sluggish (total clear time = holdMsExit + grace ≈ 1.1s).
+        this._dissolveGraceMs = 700;
+        this._dissolveGraceTimer = null;
     }
 
     resize() {
@@ -106,6 +115,31 @@ export class SceneManager {
         requestAnimationFrame(tick);
     }
 
+    // Warm the GPU program cache for every gesture object at boot, so the first
+    // gesture doesn't pay a 100–300ms shader-compile stall the moment it fires.
+    //
+    // Each factory's object is built into a detached scene (never visible),
+    // compileAsync walks it to compile every program in parallel, then we stash
+    // the object alive in this._precompiled. Keeping the materials alive keeps
+    // their entries in three.js's program cache, so the *real* gesture object
+    // — which has identical shader source — hits the cache instead of compiling.
+    async precompileGestures() {
+        if (this._precompiled) return;
+        this._precompiled = [];
+        const tmp = new THREE.Scene();
+        for (const key of Object.keys(FACTORIES)) {
+            const obj = FACTORIES[key]();
+            obj.addTo(tmp);
+            if (this.renderer.compileAsync) {
+                await this.renderer.compileAsync(tmp, this.camera);
+            } else {
+                this.renderer.compile(tmp, this.camera);
+            }
+            obj.removeFrom(tmp);
+            this._precompiled.push(obj);
+        }
+    }
+
     // Pause every-frame work (animation update + composer render). The rAF
     // chain itself keeps spinning so resume is instant — but the heavy bloom
     // + DoF + particle passes are skipped, freeing the CPU/GPU for whatever
@@ -120,23 +154,50 @@ export class SceneManager {
     }
 
     setGesture(gesture) {
-        if (gesture === this.currentGesture) return;
+        // Same gesture re-acquired (incl. 'fist' coming back during grace,
+        // since the grace path leaves currentGesture untouched on purpose):
+        // cancel any pending dissolve so the existing object survives.
+        if (gesture === this.currentGesture) {
+            this._cancelDissolveGrace();
+            return;
+        }
 
         // ── "Life Release" path ──────────────────────────────────────────
         // fist → open_palm doesn't swap objects. Instead we ask the existing
         // orb to morph in place, so the same particles that drew the Earth
         // become the falling petals — no dissolve/respawn discontinuity.
+        // Also catches the "fist → none (grace) → open_palm" case: this.current
+        // is still set during grace, so canMorphTo can fire.
         if (this.current?.canMorphTo?.(gesture)) {
+            this._cancelDissolveGrace();
             this.current.requestMorph();
             this.currentGesture = gesture;
+            this._applyTint(gesture);
             return;
         }
 
-        this.currentGesture = gesture;
-
-        // 'none' means the user has dropped their hand — clean up with gravity
-        // so particles fall and clear, rather than the radial shatter used between gestures.
+        // ── Grace-deferred dissolve ──────────────────────────────────────
+        // 'none' while holding a morphable object: keep current alive (still
+        // updating, still drawn) and schedule its dissolve. If a morph target
+        // arrives within the grace window, the morph path above catches it.
+        // If the same gesture comes back (early return at top), we just cancel
+        // the timer. Crucially: do NOT update currentGesture here — that
+        // preserves the early-return identity check on revival.
         const isCleanup = gesture === 'none';
+        if (isCleanup && this.current?.canMorphTo) {
+            this._cancelDissolveGrace();
+            this._dissolveGraceTimer = setTimeout(
+                () => this._commitDissolveGrace(),
+                this._dissolveGraceMs,
+            );
+            return;
+        }
+
+        // ── Default path: dissolve + spawn ───────────────────────────────
+        // Cancel any pending grace and dissolve current immediately. The new
+        // gesture isn't morphable from current, so there's nothing to revive.
+        this._cancelDissolveGrace();
+        this.currentGesture = gesture;
 
         if (this.current) {
             this.current.exit({ gravity: isCleanup });
@@ -145,17 +206,41 @@ export class SceneManager {
         }
 
         const factory = FACTORIES[gesture];
-        if (!factory) return;
+        if (factory) {
+            const obj = factory();
+            obj.addTo(this.scene);
+            obj.enter();
+            this.current = obj;
+        }
 
-        const obj = factory();
-        obj.addTo(this.scene);
-        obj.enter();
-        this.current = obj;
+        this._applyTint(gesture);
+    }
 
-        // Cat picks up the gesture's accent colour as a gentle drop-shadow
-        // glow. 'none' clears the glow entirely.
+    // Cat picks up the gesture's accent colour as a gentle drop-shadow glow.
+    // 'none' clears the glow entirely.
+    _applyTint(gesture) {
         const tint = CAT_TINTS[gesture];
         this.cat?.setGestureTint(tint, gesture === 'none' ? 0 : 0.6);
+    }
+
+    _cancelDissolveGrace() {
+        if (this._dissolveGraceTimer) {
+            clearTimeout(this._dissolveGraceTimer);
+            this._dissolveGraceTimer = null;
+        }
+    }
+
+    // Grace window expired without rescue — commit the dissolve we deferred.
+    // Equivalent to what the original 'none' path did synchronously, just
+    // delayed so a follow-up morph could intervene.
+    _commitDissolveGrace() {
+        this._dissolveGraceTimer = null;
+        if (!this.current) return;     // already swept by another transition
+        this.current.exit({ gravity: true });
+        this.outgoing.push(this.current);
+        this.current = null;
+        this.currentGesture = 'none';
+        this._applyTint('none');
     }
 
     setCat(cat) { this.cat = cat; }
