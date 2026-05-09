@@ -53,7 +53,7 @@ export const PERSONAL = {
   // Today's box gently pulses on the calendar so she knows there's something
   // new to open. EDIT FREELY — these are heartfelt placeholders.
   adventCalendar: [
-    "1.5 — Tháng 5 đến rồi · còn 27 ngày anh sẽ ôm em chặt nhất.",
+    "1.5 — Tháng 5 rồi đó · đợi thêm 26 ngày nữa thôi nha e.",
     "2.5 — Sáng nay anh nghĩ về em · ngay khi vừa mở mắt.",
     "3.5 — Anh đang đếm từng ngày · từng giờ · từng phút.",
     "4.5 — Anh hỏi cả thế giới: 'biết Như xinh không?' · ai cũng nói có.",

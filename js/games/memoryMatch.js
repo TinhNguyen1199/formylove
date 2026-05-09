@@ -25,10 +25,11 @@ async function loadImage(src) {
 }
 
 export class MemoryMatch {
-    constructor({ stage, stats, photos = [] }) {
-        this.stage  = stage;
-        this.stats  = stats;
-        this.photos = photos.slice();
+    constructor({ stage, stats, photos = [], gameAudio = null }) {
+        this.stage     = stage;
+        this.stats     = stats;
+        this.photos    = photos.slice();
+        this.gameAudio = gameAudio;
 
         this._matchedPairs = 0;
         this._flipped      = [];
@@ -152,6 +153,7 @@ export class MemoryMatch {
 
         card.classList.add('flipped');
         this._flipped.push(card);
+        this.gameAudio?.sfxFlip?.();
 
         if (this._flipped.length === 2) {
             this._moves += 1;
@@ -164,8 +166,13 @@ export class MemoryMatch {
                 this._flipped = [];
                 this._matchedPairs += 1;
                 this._pairsEl.textContent = `${this._matchedPairs}/${this._pairCount}`;
-                if (this._matchedPairs === this._pairCount) this._win();
+                this.gameAudio?.sfxMatch?.();
+                if (this._matchedPairs === this._pairCount) {
+                    this.gameAudio?.sfxWin?.();
+                    this._win();
+                }
             } else {
+                this.gameAudio?.sfxMiss?.();
                 setTimeout(() => {
                     a.classList.remove('flipped');
                     b.classList.remove('flipped');

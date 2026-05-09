@@ -26,6 +26,9 @@ export class GameManager {
         // would compete with the game loop for CPU/GPU while a game is up.
         // Order doesn't matter; missing methods are tolerated.
         pausables = [],
+        // Per-game synthesized BGM + SFX. Started on game open, stopped on
+        // exit. Passed into each game's constructor so action SFX can fire.
+        gameAudio = null,
     }) {
         this.menuToggle = menuToggle;
         this.menu       = menu;
@@ -36,6 +39,7 @@ export class GameManager {
         this.stageEl    = stageEl;
         this.photos     = photos;
         this.pausables  = pausables;
+        this.gameAudio  = gameAudio;
         this.activeGame = null;
 
         menuToggle.addEventListener('click', () => this.openMenu());
@@ -85,14 +89,20 @@ export class GameManager {
 
         // Silence everything that runs in the background — MediaPipe
         // inference, the 3D scene render passes, the foreground sparkle
-        // canvas, ambient events + whispers schedulers. The game loop
-        // gets the full CPU/GPU budget for itself.
+        // canvas, ambient events + whispers schedulers, and the iTunes
+        // music player on the homepage. The game loop owns the audio
+        // stage too — it gets its own synthesized BGM via gameAudio.
         this.pausables.forEach((p) => p?.pause?.());
 
+        // Each game has its own BGM + SFX. Start the BGM loop tuned for
+        // this specific game (synthesized via Web Audio, no asset deps).
+        this.gameAudio?.startBGM?.(name);
+
         this.activeGame = new Ctor({
-            stage:  this.stageEl,
-            stats:  this.statsEl,
-            photos: this.photos,
+            stage:     this.stageEl,
+            stats:     this.statsEl,
+            photos:    this.photos,
+            gameAudio: this.gameAudio,
         });
         this.activeGame.start();
     }
@@ -105,6 +115,10 @@ export class GameManager {
         this.container.classList.remove('open');
         setTimeout(() => { this.container.hidden = true; }, 350);
         document.body.classList.remove('game-active');
+
+        // Stop the per-game BGM (fades out gracefully). The homepage music
+        // player resumes on its own via the pausables resume below.
+        this.gameAudio?.stopBGM?.();
 
         // Wake the gesture-mode systems back up.
         this.pausables.forEach((p) => p?.resume?.());

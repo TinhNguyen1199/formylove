@@ -41,9 +41,10 @@ function pickItem() {
 }
 
 export class HeartCatcher {
-    constructor({ stage, stats }) {
+    constructor({ stage, stats, gameAudio = null }) {
         this.stage = stage;
         this.stats = stats;
+        this.gameAudio = gameAudio;
 
         this.items   = [];
         this.bursts  = [];     // catch-effect particles
@@ -304,6 +305,7 @@ export class HeartCatcher {
                 this.score += it.type.value * this.multi;
                 this._scoreEl.textContent = this.score;
                 this._spawnBurst(it.x, paddleY, it.type.color);
+                this.gameAudio?.sfxCatch?.();
                 this.items.splice(i, 1);
                 continue;
             }
@@ -317,9 +319,11 @@ export class HeartCatcher {
                 this.items.splice(i, 1);
                 if (this.misses >= 3) {
                     this._drawPaddle(ctx, paddleX, paddleY, paddleW);
+                    this.gameAudio?.sfxGameOver?.();
                     this._gameOver();
                     return;
                 }
+                this.gameAudio?.sfxLifeLost?.();
                 continue;
             }
 

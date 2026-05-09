@@ -3,6 +3,7 @@ import { HandTracker } from "./handTracking.js";
 import { GestureDetector } from "./gestureDetector.js";
 import { HandOverlay } from "./handOverlay.js";
 import { AudioFX } from "./audio.js";
+import { GameAudio } from "./games/gameAudio.js";
 import { ConfettiBurst } from "./confetti.js";
 import { PERSONAL } from "./personal.js";
 import { recordVisit, welcomeMessage, streakBadge } from "./visitTracker.js";
@@ -131,6 +132,9 @@ const GESTURE_LABELS = {
 const sceneManager = new SceneManager(document.getElementById("three-canvas"));
 const overlay = new HandOverlay(ui.overlayCanvas);
 const audio = new AudioFX();
+// Synthesised BGM + SFX for the games. Reuses audio's AudioContext (created
+// lazily by audio.unlock()), so volumes scale together.
+const gameAudio = new GameAudio(audio);
 const confetti = new ConfettiBurst();
 
 // ── Space Cat companion (2D SVG) ───────────────────────────────────────────
@@ -572,6 +576,7 @@ if (ui.gameToggle && ui.gameMenu && ui.gameContainer) {
     stageEl:     ui.gameStage,
     photos:      PERSONAL.photos ?? [],
     pausables:   [sceneManager, cursorMagnet, bloomTrail, heatAura, musicPlayer, ambientEvents, whispers, livingBackground, celestial, zenMode, trackerPausable, catInteraction, cat],
+    gameAudio,
   });
 }
 

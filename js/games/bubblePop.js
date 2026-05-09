@@ -10,9 +10,10 @@ const BUBBLE_COLORS = [
 ];
 
 export class BubblePop {
-    constructor({ stage, stats }) {
+    constructor({ stage, stats, gameAudio = null }) {
         this.stage = stage;
         this.stats = stats;
+        this.gameAudio = gameAudio;
 
         this.bubbles    = [];
         this.particles  = [];
@@ -113,6 +114,9 @@ export class BubblePop {
         if (now <= this.comboUntil) this.combo += 1;
         else this.combo = 1;
         this.comboUntil = now + 1500;
+
+        // Pop SFX — pitch rises with combo so streaks feel hot.
+        this.gameAudio?.sfxPop?.(this.combo);
 
         let multi = 1;
         if (this.combo >= 8)      multi = 4;
