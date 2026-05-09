@@ -12,6 +12,7 @@ import { AdventCalendar } from "./advent.js";
 import { CursorMagnet } from "./cursorMagnet.js";
 import { BloomTrail } from "./bloomTrail.js";
 import { HeatAura } from "./heatAura.js";
+import { MusicPlayer } from "./musicPlayer.js";
 import { AmbientEvents } from "./ambientEvents.js";
 import { Whispers } from "./whispers.js";
 import { LivingBackground } from "./livingBackground.js";
@@ -240,6 +241,7 @@ watchTimeOfDay((slot) => {
 const cursorMagnet     = new CursorMagnet({ count: 42 });
 const bloomTrail       = new BloomTrail();
 const heatAura         = new HeatAura();
+const musicPlayer      = new MusicPlayer();
 const ambientEvents    = new AmbientEvents({ minDelay: 18_000, maxDelay: 50_000 });
 const whispers         = new Whispers({
   phrases: PERSONAL.whispers ?? [],
@@ -569,7 +571,7 @@ if (ui.gameToggle && ui.gameMenu && ui.gameContainer) {
     statsEl:     ui.gameStats,
     stageEl:     ui.gameStage,
     photos:      PERSONAL.photos ?? [],
-    pausables:   [sceneManager, cursorMagnet, bloomTrail, heatAura, ambientEvents, whispers, livingBackground, celestial, zenMode, trackerPausable, catInteraction, cat],
+    pausables:   [sceneManager, cursorMagnet, bloomTrail, heatAura, musicPlayer, ambientEvents, whispers, livingBackground, celestial, zenMode, trackerPausable, catInteraction, cat],
   });
 }
 
@@ -703,9 +705,9 @@ tracker
       "Could not load. Refresh to retry.";
   });
 
-// Password gate — birthday DDMMYYYY. The hint ("nhập ngày sinh em vào")
-// is shown via the input's title tooltip on hover.
-const START_PASSWORD = "27052002";
+// Password gate — birthday DDMM. The hint ("nhập ngày sinh em vào") is shown
+// via the input's title tooltip on hover.
+const START_PASSWORD = "2705";
 
 // ── Intro cinematic ───────────────────────────────────────────────────────
 // Plays once after Begin. CSS owns the keyframes — JS only reveals the
@@ -830,12 +832,17 @@ async function beginExperience() {
 
     let webcamFailed = false;
     try {
-      await tracker.start();
-      _trackerStarted = true;
       // Default: tracking starts paused. Only resume if the user explicitly
       // turned it on in a previous session (stored "0"). This keeps the first
-      // visit quiet and low-power; tapping the toggle activates MediaPipe.
-      applyGestureTrackingState(localStorage.getItem(GESTURE_PAUSED_KEY) !== "0");
+      // visit quiet and low-power; tapping the toggle activates MediaPipe AND
+      // requests webcam permission for the first time.
+      const initiallyPaused = localStorage.getItem(GESTURE_PAUSED_KEY) !== "0";
+      // When initially paused, skip the camera.start() inside tracker.start()
+      // so the webcam light never flashes on then off. The model still loads
+      // (cheap), but no stream is acquired until the user clicks the toggle.
+      await tracker.start({ startCamera: !initiallyPaused });
+      _trackerStarted = true;
+      applyGestureTrackingState(initiallyPaused);
     } catch (err) {
       console.warn("Webcam unavailable — entering demo mode", err);
       webcamFailed = true;

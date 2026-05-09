@@ -1077,6 +1077,136 @@ body.zen-active #living-bg {
     will-change: transform, opacity;
 }
 
+/* ── Music player (iTunes preview surprise) ────────────────────────────── */
+#music-player {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 8px 8px 8px;
+    border-radius: 36px;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    background: rgba(20, 10, 25, 0.45);
+    border: 1px solid rgba(var(--accent-rgb), 0.18);
+    color: #f6e9ec;
+    font-family: 'Segoe UI', 'Helvetica Neue', system-ui, sans-serif;
+    user-select: none;
+    transition: opacity 320ms ease, max-width 320ms ease, padding 320ms ease;
+    max-width: 320px;
+}
+
+/* Idle: shrink to a circle inviting first click. */
+#music-player.idle {
+    max-width: 200px;
+    padding-right: 16px;
+}
+#music-player.idle #music-skip { display: none; }
+
+#music-art-wrap {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    cursor: pointer;
+    overflow: hidden;
+    background: linear-gradient(135deg, #2a1a3a 0%, #4a2a4a 100%);
+}
+#music-art {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    display: none;
+}
+#music-art-icon {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: rgba(255, 220, 230, 0.85);
+}
+#music-player.playing #music-art,
+#music-player.paused  #music-art {
+    display: block;
+}
+#music-player.playing #music-art-icon,
+#music-player.paused  #music-art-icon {
+    display: none;
+}
+#music-player.playing #music-art {
+    animation: music-vinyl-spin 9s linear infinite;
+}
+#music-player.paused #music-art {
+    animation: music-vinyl-spin 9s linear infinite;
+    animation-play-state: paused;
+}
+#music-player.loading #music-art-icon {
+    animation: music-pulse 1.0s ease-in-out infinite;
+}
+
+@keyframes music-vinyl-spin {
+    to { transform: rotate(360deg); }
+}
+@keyframes music-pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.35; }
+}
+
+#music-info {
+    flex: 1;
+    min-width: 0;
+}
+#music-title {
+    font-size: 13px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    letter-spacing: 0.2px;
+}
+#music-artist {
+    font-size: 11px;
+    opacity: 0.65;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-top: 2px;
+}
+
+#music-skip {
+    background: transparent;
+    border: none;
+    color: rgba(255, 220, 230, 0.7);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 50%;
+    transition: background 150ms ease, color 150ms ease, transform 200ms ease;
+    flex-shrink: 0;
+}
+#music-skip:hover {
+    background: rgba(255, 220, 230, 0.12);
+    color: #fff;
+    transform: rotate(90deg);
+}
+#music-player.error #music-title { color: rgba(255, 200, 200, 0.85); }
+
+/* Hide during the same modes that hide the legend, for visual consistency. */
+body.zen-active   #music-player,
+body.game-active  #music-player,
+body.intro-active #music-player {
+    opacity: 0;
+    pointer-events: none;
+}
+
 /* ── Click-spawned hearts ──────────────────────────────────────────────── */
 .click-heart {
     position: fixed;
@@ -2137,6 +2267,27 @@ body.gate-locked #todo-toggle {
     transition: opacity 0.5s ease;
 }
 
+/* All other UI cards stay hidden until password is accepted, so the gate
+   screen reads as just "background + password input" — no spoiler of what's
+   inside. Three-canvas, ambience layers (cursor magnet, bloom trail, heat
+   aura, whispers, celestial) deliberately stay visible to set the mood. */
+body.gate-locked #gesture-indicator,
+body.gate-locked #legend,
+body.gate-locked #streak-chip,
+body.gate-locked #poem-card,
+body.gate-locked #welcome-card,
+body.gate-locked #birthday-counter,
+body.gate-locked #daily-message,
+body.gate-locked #advent-toggle,
+body.gate-locked #webcam,
+body.gate-locked #hand-overlay,
+body.gate-locked #music-player,
+body.gate-locked .space-cat {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.5s ease;
+}
+
 /* ── body.game-active hides the gesture-mode UI ─────────────────────────── */
 body.game-active #gesture-indicator,
 body.game-active #legend,
@@ -2157,6 +2308,18 @@ body.game-active #hand-overlay {
 }
 body.game-active #three-canvas {
     opacity: 0.3;       /* dim the 3D scene behind the game */
+    transition: opacity 0.35s ease;
+}
+
+/* ── body.gesture-paused hides gesture-only UI ──────────────────────────── */
+/* When the user toggles gesture tracking off, the on-screen indicator card
+   (current gesture name + hold-progress ring) and the legend (icons + names
+   for each gesture) become irrelevant — hide them entirely so the page reads
+   as a quiet ambient background instead of a half-on tracking UI. */
+body.gesture-paused #gesture-indicator,
+body.gesture-paused #legend {
+    opacity: 0;
+    pointer-events: none;
     transition: opacity 0.35s ease;
 }
 

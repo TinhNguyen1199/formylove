@@ -33,36 +33,61 @@ export class HandTracker {
         this._ready = true;
     }
 
-    async start() {
+    async start({ startCamera = true } = {}) {
         await this.preload();
         if (typeof Camera === 'undefined') {
             throw new Error('MediaPipe Camera utility not loaded');
         }
         this.camera = new Camera(this.videoEl, {
             onFrame: async () => {
-                // Skip the heavy MediaPipe inference while paused. The Camera
-                // keeps grabbing frames (cheap) so resuming is instant.
+                // No-op while paused. Camera is also fully stopped on pause
+                // (see below), so onFrame won't even fire — this guard just
+                // covers any in-flight frame already queued at stop time.
                 if (this._paused) return;
                 await this.hands.send({ image: this.videoEl });
             },
             width: 640,
             height: 480,
         });
-        await this.camera.start();
+        if (startCamera) {
+            await this.camera.start();
+        } else {
+            // Bring the tracker up in paused state — MediaPipe model is loaded
+            // and the Camera object is constructed, but the webcam stream is
+            // not yet acquired. resume() spins it up on demand (and that's
+            // when the permission prompt fires for first-time visitors).
+            this._paused = true;
+        }
     }
 
-    // Stop running MediaPipe inference. Use this when entering a non-gesture
-    // mode (e.g. game mode) so the model doesn't burn CPU in the background.
-    // On pause we push a final null result so the gesture detector / scene
-    // clear out — otherwise the last detected gesture would stay "stuck".
+    // Pause MediaPipe inference AND release the webcam — camera light goes
+    // off, the device is freed for other apps. Push a final null landmark so
+    // the gesture detector + scene clear out; otherwise the last detected
+    // gesture would stay "stuck" in the UI.
     pause() {
         if (this._paused) return;
         this._paused = true;
         this.onResults?.(null);
+        if (this.camera) {
+            try { this.camera.stop(); }
+            catch (e) { console.warn('[HandTracker] camera.stop failed:', e); }
+        }
     }
 
-    resume() {
+    // Re-acquire the webcam and resume inference. First call after a stop
+    // takes ~500ms–1s while getUserMedia spins the device back up; the
+    // browser usually has the permission cached so no prompt re-fires.
+    async resume() {
+        if (!this._paused) return;
         this._paused = false;
+        if (this.camera) {
+            try { await this.camera.start(); }
+            catch (e) {
+                console.warn('[HandTracker] camera.start failed:', e);
+                // Roll back paused flag so a subsequent resume() will retry.
+                this._paused = true;
+            }
+        }
     }
 
     stop() {
