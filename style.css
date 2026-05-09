@@ -1047,6 +1047,36 @@ body.zen-active #living-bg {
     z-index: 2;          /* above three-canvas (1), below webcam (5) */
 }
 
+/* ── Bloom trail (pastel flowers blooming under cursor) ────────────────── */
+#bloom-trail {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    mix-blend-mode: screen;     /* additive over the scene + cursor magnet */
+}
+
+/* ── Heat aura (warm radial glow following the cursor) ─────────────────── */
+#heat-aura {
+    position: fixed;
+    left: 0;
+    top: 0;
+    pointer-events: none;
+    border-radius: 50%;
+    background: radial-gradient(
+        circle at center,
+        rgba(255, 220, 200, 0.22) 0%,
+        rgba(255, 215, 195, 0.12) 38%,
+        rgba(255, 215, 195, 0.04) 65%,
+        rgba(255, 215, 195, 0)    80%
+    );
+    z-index: 2;
+    mix-blend-mode: screen;
+    opacity: 0;
+    transition: opacity 360ms ease;
+    will-change: transform, opacity;
+}
+
 /* ── Click-spawned hearts ──────────────────────────────────────────────── */
 .click-heart {
     position: fixed;
@@ -1200,6 +1230,19 @@ body.zen-active #living-bg {
     25%  { opacity: 0.95; transform: translate(-50%, -50%); }
     70%  { opacity: 0.95; transform: translate(-50%, -50%); }
     100% { opacity: 0;    transform: translate(-50%, calc(-50% - 10px)); }
+}
+
+/* Heat-aura highlight: when the cursor's warm zone is over a whisper, brighten
+   and slightly enlarge it so it feels lit by the cursor. The transition runs
+   on filter/text-shadow rather than transform so the whisper-fade keyframes
+   above keep owning translate. */
+.whisper.whisper--warm {
+    filter: brightness(1.35);
+    text-shadow:
+        0 0 16px rgba(var(--accent-rgb), 0.95),
+        0 0 38px rgba(var(--accent-rgb), 0.55),
+        0 0 70px rgba(255, 220, 200, 0.45);
+    transition: filter 240ms ease, text-shadow 240ms ease;
 }
 
 /* ── Game toggle button ────────────────────────────────────────────────── */

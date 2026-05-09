@@ -10,6 +10,8 @@ import { showDailyMessage } from "./dailyMessage.js";
 import { watchTimeOfDay } from "./timeOfDay.js";
 import { AdventCalendar } from "./advent.js";
 import { CursorMagnet } from "./cursorMagnet.js";
+import { BloomTrail } from "./bloomTrail.js";
+import { HeatAura } from "./heatAura.js";
 import { AmbientEvents } from "./ambientEvents.js";
 import { Whispers } from "./whispers.js";
 import { LivingBackground } from "./livingBackground.js";
@@ -236,6 +238,8 @@ watchTimeOfDay((slot) => {
 //   + time of day, so the page never looks identical twice.
 // Bound to vars so the GameManager can pause them while a game is running.
 const cursorMagnet     = new CursorMagnet({ count: 42 });
+const bloomTrail       = new BloomTrail();
+const heatAura         = new HeatAura();
 const ambientEvents    = new AmbientEvents({ minDelay: 18_000, maxDelay: 50_000 });
 const whispers         = new Whispers({
   phrases: PERSONAL.whispers ?? [],
@@ -565,7 +569,7 @@ if (ui.gameToggle && ui.gameMenu && ui.gameContainer) {
     statsEl:     ui.gameStats,
     stageEl:     ui.gameStage,
     photos:      PERSONAL.photos ?? [],
-    pausables:   [sceneManager, cursorMagnet, ambientEvents, whispers, livingBackground, celestial, zenMode, trackerPausable, catInteraction, cat],
+    pausables:   [sceneManager, cursorMagnet, bloomTrail, heatAura, ambientEvents, whispers, livingBackground, celestial, zenMode, trackerPausable, catInteraction, cat],
   });
 }
 
