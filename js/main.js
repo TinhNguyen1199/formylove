@@ -109,6 +109,12 @@ const ui = {
   todoAddBtn:  document.getElementById("todo-add-btn"),
   todoClose:   document.getElementById("todo-close"),
   todoCount:   document.getElementById("todo-count"),
+
+  // Intro cinematic + webcam-fallback demo panel
+  intro:       document.getElementById("intro-cinematic"),
+  demoPanel:   document.getElementById("demo-panel"),
+  demoHide:    document.getElementById("demo-hide"),
+  sceneToggle: document.getElementById("scene-toggle"),
 };
 
 const GESTURE_LABELS = {
@@ -416,51 +422,55 @@ function gestureFilter(raw) {
   return raw;
 }
 
+// Hoisted so demo-mode buttons (when there's no webcam) can fire the same
+// flow the gesture detector uses on lock-in.
+function handleGestureChange(gesture) {
+  // Track open_palm firings for the cooldown gate. Any other non-'none'
+  // gesture firing in between satisfies the "different gesture" condition.
+  if (gesture === "open_palm") {
+    _lastOpenPalmAt = performance.now();
+    _didOtherGestureSinceOpenPalm = false;
+  } else if (gesture !== "none") {
+    _didOtherGestureSinceOpenPalm = true;
+  }
+
+  const label = GESTURE_LABELS[gesture] ?? GESTURE_LABELS.none;
+  setGestureLabel(label);
+  ui.indicator.classList.toggle("active", gesture !== "none");
+
+  // Drive gesture-aware UI tinting via body attributes — CSS variables
+  // under body[data-gesture] swap accent colours; the webcam glow lights
+  // up while data-active is true.
+  document.body.dataset.gesture = gesture;
+  document.body.dataset.active  = gesture !== "none" ? "true" : "false";
+
+  if (gesture !== "none") {
+    audio.playGestureCue(gesture);
+    catEvolution.noteGesture();
+  }
+  sceneManager.setGesture(gesture);
+
+  // First gesture lock-in dismisses the daily-message card so it doesn't
+  // compete with the active scene. No-op if already faded.
+  if (gesture !== "none" && _dailyMsgHandle) {
+    _dailyMsgHandle.dismiss();
+    _dailyMsgHandle = null;
+  }
+
+  // Treat any actual gesture as activity for zen-idle purposes — exits
+  // zen mode if it was active, and re-arms the idle countdown either way.
+  zenMode.noteGesture(gesture);
+
+  // Each unique gesture she lands types out the next line of the poem.
+  maybeAdvancePoem(gesture);
+}
+
 const detector = new GestureDetector({
   // Confirm a gesture only after 1 seconds of stable hold — the progress ring
   // on the gesture card fills clockwise to show the timer to the user.
   holdMs: 1000,
   gestureFilter,
-  onChange: (gesture) => {
-    // Track open_palm firings for the cooldown gate. Any other non-'none'
-    // gesture firing in between satisfies the "different gesture" condition.
-    if (gesture === "open_palm") {
-      _lastOpenPalmAt = performance.now();
-      _didOtherGestureSinceOpenPalm = false;
-    } else if (gesture !== "none") {
-      _didOtherGestureSinceOpenPalm = true;
-    }
-
-    const label = GESTURE_LABELS[gesture] ?? GESTURE_LABELS.none;
-    setGestureLabel(label);
-    ui.indicator.classList.toggle("active", gesture !== "none");
-
-    // Drive gesture-aware UI tinting via body attributes — CSS variables
-    // under body[data-gesture] swap accent colours; the webcam glow lights
-    // up while data-active is true.
-    document.body.dataset.gesture = gesture;
-    document.body.dataset.active  = gesture !== "none" ? "true" : "false";
-
-    if (gesture !== "none") {
-      audio.playGestureCue(gesture);
-      catEvolution.noteGesture();
-    }
-    sceneManager.setGesture(gesture);
-
-    // First gesture lock-in dismisses the daily-message card so it doesn't
-    // compete with the active scene. No-op if already faded.
-    if (gesture !== "none" && _dailyMsgHandle) {
-      _dailyMsgHandle.dismiss();
-      _dailyMsgHandle = null;
-    }
-
-    // Treat any actual gesture as activity for zen-idle purposes — exits
-    // zen mode if it was active, and re-arms the idle countdown either way.
-    zenMode.noteGesture(gesture);
-
-    // Each unique gesture she lands types out the next line of the poem.
-    maybeAdvancePoem(gesture);
-  },
+  onChange: handleGestureChange,
   // Per-frame report of detection state. Drives the scene's confidence fade
   // and the hold-progress ring on the gesture card.
   onTick: ({ current, currentConfidence, holdProgress }) => {
@@ -692,6 +702,101 @@ tracker
 // is shown via the input's title tooltip on hover.
 const START_PASSWORD = "27052002";
 
+// ── Intro cinematic ───────────────────────────────────────────────────────
+// Plays once after Begin. CSS owns the keyframes — JS only reveals the
+// element, waits ~3.4s (or until the user clicks to skip), then fades out.
+// Resolves so beginExperience() can sequence the welcome card after it.
+const INTRO_HOLD_MS = 3400;
+
+function playIntroCinematic() {
+  const el = ui.intro;
+  if (!el) return Promise.resolve();
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      el.classList.remove("intro-visible");
+      el.classList.add("intro-leaving");
+      // Match the 0.7s opacity transition in CSS.
+      setTimeout(() => {
+        el.hidden = true;
+        el.classList.remove("intro-leaving");
+        el.removeEventListener("click", finish);
+        resolve();
+      }, 700);
+    };
+
+    el.hidden = false;
+    // Force reflow so the visible class triggers the transition.
+    void el.offsetWidth;
+    el.classList.add("intro-visible");
+    el.addEventListener("click", finish);
+    setTimeout(finish, INTRO_HOLD_MS);
+  });
+}
+
+// ── Scene picker · always available after Begin ───────────────────────────
+// Left-side 🎬 toggle button + popup panel anchored next to it. Wired
+// regardless of webcam status — the user can always preview a scene without
+// holding a gesture. Panel starts hidden; the toggle is the entry point.
+let _scenePickerWired = false;
+
+function setScenePickerHidden(hidden) {
+  document.body.classList.toggle("demo-hidden", hidden);
+  ui.sceneToggle?.setAttribute("aria-pressed", hidden ? "false" : "true");
+}
+
+function wireScenePicker() {
+  if (_scenePickerWired) return;
+  _scenePickerWired = true;
+
+  const panel = ui.demoPanel;
+  if (!panel) return;
+
+  const buttons = panel.querySelectorAll("button[data-gesture]");
+  buttons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const gesture = btn.dataset.gesture;
+      // setGesture() is a no-op when the new gesture matches the current.
+      // For replay, route through 'none' first so the same scene dissolves
+      // and rebuilds — matches the lived feel of swapping.
+      if (gesture !== "none" && document.body.dataset.gesture === gesture) {
+        handleGestureChange("none");
+        setTimeout(() => handleGestureChange(gesture), 200);
+      } else {
+        handleGestureChange(gesture);
+      }
+      buttons.forEach((b) => b.classList.toggle(
+        "demo-active",
+        b === btn && gesture !== "none",
+      ));
+    });
+  });
+
+  // 🎬 toggle opens/closes the panel; × inside the panel always closes.
+  ui.sceneToggle?.addEventListener("click", () => {
+    const hidden = document.body.classList.contains("demo-hidden");
+    setScenePickerHidden(!hidden);
+  });
+  ui.demoHide?.addEventListener("click", () => setScenePickerHidden(true));
+
+  // Default: hidden. User must click the toggle to open.
+  setScenePickerHidden(true);
+}
+
+// ── Demo mode (no webcam available) ───────────────────────────────────────
+// Sets body.demo-mode so the webcam preview, hand overlay, indicator and
+// gesture-pause toggle are hidden — they have nothing to show. The scene
+// picker itself is wired separately by wireScenePicker() and is what the
+// user uses to preview scenes in this state.
+function enterDemoMode() {
+  document.body.classList.add("demo-mode");
+  // Auto-open the picker so the user immediately sees how to interact.
+  setScenePickerHidden(false);
+}
+
 async function beginExperience() {
   try {
     // Open the warmup gate 2s after the click — see gestureFilter above.
@@ -702,23 +807,53 @@ async function beginExperience() {
     // Cat audio shares the same WebAudio graph so there's only one context,
     // but routes through its own gain bus (separate volume from music box).
     await catAudio.unlock({ ctx: audio.ctx, master: audio.master });
-    await tracker.start();
-    _trackerStarted = true;
-    // Default: tracking starts paused. Only resume if the user explicitly
-    // turned it on in a previous session (stored "0"). This keeps the first
-    // visit quiet and low-power; tapping the toggle activates MediaPipe.
-    applyGestureTrackingState(localStorage.getItem(GESTURE_PAUSED_KEY) !== "0");
+
+    // Hide the password gate and mute every other UI layer for the intro.
+    // body.intro-active fades cards/toggles away; gate-locked already hides
+    // the right-side toggles from initial HTML.
     ui.startGate.classList.add("hidden");
     setTimeout(() => ui.startGate.remove(), 800);
+    document.body.classList.add("intro-active");
+
+    // Music box on now so the first chord overlaps the intro reveal.
+    audio.startMusicBox();
+
+    // Run the intro in parallel with tracker.start(). Camera permission
+    // prompts can take a few seconds — we don't want to stall the cinematic
+    // behind that. If the prompt is denied, we fall through to demo mode.
+    const introPromise = playIntroCinematic();
+
+    let webcamFailed = false;
+    try {
+      await tracker.start();
+      _trackerStarted = true;
+      // Default: tracking starts paused. Only resume if the user explicitly
+      // turned it on in a previous session (stored "0"). This keeps the first
+      // visit quiet and low-power; tapping the toggle activates MediaPipe.
+      applyGestureTrackingState(localStorage.getItem(GESTURE_PAUSED_KEY) !== "0");
+    } catch (err) {
+      console.warn("Webcam unavailable — entering demo mode", err);
+      webcamFailed = true;
+    }
+
+    // Wait for the intro to finish before revealing chrome / welcome card.
+    await introPromise;
+    document.body.classList.remove("intro-active");
+
     // Gate is open — reveal the right-side toggles (game / gesture / photo /
     // capsule). They were hidden via body.gate-locked from initial HTML so
     // they never flash before the password is accepted.
     document.body.classList.remove("gate-locked");
 
-    // Birthday party arrival: kick off the music-box loop and a celebratory
-    // confetti burst the moment the experience begins. A bonus burst fires
-    // automatically if today happens to be the actual birthday.
-    audio.startMusicBox();
+    // Scene picker is always available; default state is hidden behind the
+    // floating 🎬 chip. enterDemoMode() additionally hides webcam UI and
+    // auto-opens the picker.
+    wireScenePicker();
+    if (webcamFailed) enterDemoMode();
+
+    // Birthday party arrival: confetti burst the moment the experience begins.
+    // A bonus burst fires automatically if today happens to be the actual
+    // birthday.
     confetti.burst({ count: 160, duration: 4500 });
     if (ui.bdayCard?.classList.contains("today")) {
       setTimeout(() => confetti.burst({ count: 220, duration: 6000 }), 1200);
@@ -731,7 +866,10 @@ async function beginExperience() {
     zenMode.resume();
   } catch (err) {
     console.error(err);
-    alert("Could not start the camera. Please grant access and reload.");
+    document.body.classList.remove("intro-active");
+    document.body.classList.remove("gate-locked");
+    wireScenePicker();
+    enterDemoMode();
   }
 }
 

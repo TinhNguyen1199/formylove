@@ -29,6 +29,45 @@
       <p>Preparing something special...</p>
     </div>
 
+    <div id="intro-cinematic" hidden aria-hidden="true">
+      <div class="intro-dust"></div>
+      <div class="intro-stage">
+        <div class="intro-name">Như</div>
+        <div class="intro-sep">·</div>
+        <div class="intro-date">27<span class="dot">.</span>5</div>
+        <div class="intro-tag">a gift in motion</div>
+      </div>
+      <div class="intro-skip">click to skip</div>
+    </div>
+
+    <button id="scene-toggle" type="button" title="Chọn cảnh · không cần cử chỉ tay" aria-label="Mở khung chọn cảnh" aria-pressed="false">
+      🎬
+    </button>
+
+    <div id="demo-panel" role="region" aria-label="Scene picker">
+      <button id="demo-hide" type="button" class="demo-hide" title="Ẩn khung này" aria-label="Ẩn khung chọn cảnh">×</button>
+      <div class="demo-title">
+        <span class="demo-icon">🎬</span>
+        <span>Cảnh · chọn để xem</span>
+      </div>
+      <div class="demo-buttons">
+        <button type="button" data-gesture="fist" title="Earth · trái đất trong tay">
+          <span class="demo-emoji">✊</span><span class="demo-label">Earth</span>
+        </button>
+        <button type="button" data-gesture="open_palm" title="Sakura · gió hoa anh đào">
+          <span class="demo-emoji">🖐</span><span class="demo-label">Sakura</span>
+        </button>
+        <button type="button" data-gesture="peace" title="Peace · lời cho em">
+          <span class="demo-emoji">✌</span><span class="demo-label">Words</span>
+        </button>
+        <button type="button" data-gesture="thumbs_up" title="Like · trái tim ánh sáng">
+          <span class="demo-emoji">👍</span><span class="demo-label">Heart</span>
+        </button>
+        <button type="button" data-gesture="none" class="demo-clear" title="Tắt cảnh">○</button>
+      </div>
+      <div class="demo-hint">Bấm để xem từng cảnh · không cần cử chỉ tay</div>
+    </div>
+
     <video id="webcam" autoplay muted playsinline></video>
     <canvas id="hand-overlay"></canvas>
     <canvas id="three-canvas"></canvas>
