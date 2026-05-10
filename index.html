@@ -5,6 +5,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>For Như · A Gesture of Love</title>
 
+    <script>
+      // Bảo vệ source: chặn F12 / chuột phải / view-source khi chạy production.
+      // Bỏ qua trên localhost để dev không bị ảnh hưởng.
+      (function () {
+        var h = location.hostname;
+        if (h === 'localhost' || h === '127.0.0.1' || h === '' || h === '::1') return;
+
+        document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+        document.addEventListener('keydown', function (e) {
+          var k = (e.key || '').toUpperCase();
+          if (
+            k === 'F12' ||
+            (e.ctrlKey && e.shiftKey && (k === 'I' || k === 'J' || k === 'C')) ||
+            (e.ctrlKey && k === 'U')
+          ) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }, true);
+
+        var locked = false;
+        function lock() {
+          if (locked) return;
+          locked = true;
+          document.documentElement.innerHTML =
+            '<head><meta charset="UTF-8"><title>·</title></head>' +
+            '<body style="margin:0;background:#0a0a14;color:#fff;font-family:Cormorant Garamond,serif;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:1rem">' +
+            '<div><div style="font-size:2rem;margin-bottom:1rem">Đừng mà 🥺</div>' +
+            '<div style="font-size:1rem;opacity:.6">Tải lại trang để xem tiếp nhé</div></div>' +
+            '</body>';
+        }
+
+        // Phát hiện DevTools mở qua chênh lệch outer/inner size
+        setInterval(function () {
+          var dw = window.outerWidth  - window.innerWidth;
+          var dh = window.outerHeight - window.innerHeight;
+          if (dw > 200 || dh > 200) lock();
+        }, 1000);
+      })();
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

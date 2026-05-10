@@ -15,7 +15,15 @@
       "Bash(PowerShell *)",
       "Bash(python *)",
       "Bash(curl *)",
-      "Bash(kill bqitwiz8g *)"
+      "Bash(kill bqitwiz8g *)",
+      "Bash(cmd *)",
+      "PowerShell(.\\\\build.ps1)",
+      "PowerShell(npm install *)",
+      "PowerShell(javascript-obfuscator *)",
+      "PowerShell(nvm list *)",
+      "PowerShell(Get-Content *)",
+      "PowerShell(Select-String -Path 'dist\\\\js\\\\main.js' -Pattern '^import|from\\\\s+[''\"]' | Select-Object -First 10 | ForEach-Object { $_.Line.Substring\\(0, [Math]::Min\\(120, $_.Line.Length\\)\\) })",
+      "PowerShell(netlify *)"
     ]
   }
 }

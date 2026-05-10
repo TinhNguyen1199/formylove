@@ -1,1 +1,26 @@
 .claude/settings.local.json
+
+# Local Netlify folder
+.netlify
+
+# Build output
+dist/
+build/
+out/
+*.log
+
+# Build scripts artifacts
+build.ps1.log
+
+# Node / package manager (if ever introduced)
+node_modules/
+.cache/
+.parcel-cache/
+.vite/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
